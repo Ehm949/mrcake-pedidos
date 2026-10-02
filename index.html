@@ -199,6 +199,49 @@ dialog::backdrop{background:rgba(30,20,24,.55)}
 .dl dd{margin:0}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
 .toast.show{opacity:1}
+.search{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.search input{flex:1 1 320px;border:1.5px solid var(--line);border-radius:12px;padding:11px 14px;background:var(--surface);font-size:16px}
+.search input:focus{border-color:var(--accent);outline:none}
+.search small{color:var(--ink-2)}
+.ag-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.ag-controls input[type=date]{border:1.5px solid var(--line);border-radius:10px;padding:7px 10px;background:var(--surface);font-size:16px}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px}
+.sheet-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:6px}
+.sheet-head h3{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:30px;margin:0}
+.sheet-head span{color:var(--ink-2)}
+.sheet h4{margin:24px 0 6px;font-size:17px}
+.sheet .tbl-wrap{border:none;margin:0}
+.sheet table{min-width:0}
+.sheet td.q{font-family:'Instrument Serif',Georgia,serif;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;width:70px}
+.sheet td small{color:var(--ink-2)}
+.totals{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;color:var(--ink-2);font-size:14px}
+.totals b{color:var(--ink)}
+.deliv{list-style:none;margin:0;padding:0}
+.deliv li{display:grid;grid-template-columns:76px 1fr auto;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);align-items:start}
+.deliv li:last-child{border-bottom:none}
+.deliv .hr{font-weight:700;font-variant-numeric:tabular-nums}
+.deliv small{display:block;color:var(--ink-2);font-size:13.5px}
+.deliv .right{text-align:right;font-size:14px;display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.box{display:inline-block;width:18px;height:18px;border:1.5px solid var(--ink-2);border-radius:4px}
+.opps{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.opp{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.opp .badge{align-self:flex-start}
+.opp h4{margin:2px 0 0;font-size:18px}
+.opp p{margin:0;color:var(--ink-2);font-size:14px}
+.opp .who{color:var(--ink);font-size:15px}
+.opp .btn{margin-top:8px}
+.opp.sent{background:var(--bg)}
+.callout{background:var(--accent-soft);border-radius:16px;padding:16px 20px;margin-bottom:16px;display:flex;gap:16px 40px;flex-wrap:wrap}
+.callout b{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:40px;line-height:1;display:block}
+.callout span{color:var(--ink-2);font-size:14px}
+.section-h{font-size:20px;margin:32px 0 12px}
+@media print{
+  :root{--bg:#fff;--surface:#fff;--ink:#000;--ink-2:#444;--line:#bbb;padding:0}
+  body{background:#fff}
+  .top,.no-print,.toast,dialog{display:none!important}
+  main{padding:0}
+  .sheet{border:none;padding:0}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -212,6 +255,8 @@ dialog::backdrop{background:rgba(30,20,24,.55)}
     <nav class="tabs" role="tablist" aria-label="Secciones">
       <button class="tab" role="tab" data-view="nuevo" aria-selected="true">Nuevo pedido</button>
       <button class="tab" role="tab" data-view="produccion" aria-selected="false">Producción<span class="count" id="count-prod">0</span></button>
+      <button class="tab" role="tab" data-view="agenda" aria-selected="false">Agenda del día</button>
+      <button class="tab" role="tab" data-view="clientes" aria-selected="false">Clientes<span class="count" id="count-opps" hidden>0</span></button>
       <button class="tab" role="tab" data-view="numeros" aria-selected="false">Números</button>
       <button class="tab" role="tab" data-view="precios" aria-selected="false">Precios y costos</button>
     </nav>
@@ -252,13 +297,42 @@ dialog::backdrop{background:rgba(30,20,24,.55)}
       </div>
       <button class="btn btn-sm" id="clear-demo">Borrar pedidos de ejemplo</button>
     </div>
+    <div class="search"><input type="search" id="q" placeholder="Buscar por nombre, teléfono, folio o producto" aria-label="Buscar pedido"><small id="q-count" role="status" aria-live="polite"></small></div>
     <div class="filters" id="suc-filter" role="group" aria-label="Filtrar por sucursal"></div>
     <div class="board-scroll"><div class="board" id="board"></div></div>
   </section>
 
+  <section class="view" id="v-agenda" hidden>
+    <div class="prod-head no-print">
+      <div>
+        <h2 class="title">Agenda del día</h2>
+        <p class="lede" style="margin-bottom:0">Lo que hay que hornear y entregar en un día, sumado por producto. Lista para imprimir y pegar en la cocina.</p>
+      </div>
+      <button class="btn btn-primary" id="ag-print">Imprimir hoja</button>
+    </div>
+    <div class="ag-controls no-print">
+      <button class="btn btn-sm" id="ag-prev">Día anterior</button>
+      <input type="date" id="ag-date" aria-label="Fecha de la agenda">
+      <button class="btn btn-sm" id="ag-next">Día siguiente</button>
+      <button class="btn btn-sm" id="ag-today">Hoy</button>
+    </div>
+    <div class="filters no-print" id="ag-suc" role="group" aria-label="Filtrar por sucursal"></div>
+    <div class="sheet" id="ag-sheet"></div>
+  </section>
+
+  <section class="view" id="v-clientes" hidden>
+    <h2 class="title">Clientes</h2>
+    <p class="lede">Quien celebró con Mr. Cake hace casi un año probablemente vuelva a celebrar. Aquí aparecen los cumpleaños y aniversarios que se acercan, con el mensaje listo para mandar.</p>
+    <div class="callout" id="opp-callout"></div>
+    <div class="opps" id="opps"></div>
+    <h3 class="section-h">Directorio de clientes</h3>
+    <div class="search"><input type="search" id="cq" placeholder="Buscar cliente por nombre o teléfono" aria-label="Buscar cliente"></div>
+    <div class="tbl-wrap" id="dir"></div>
+  </section>
+
   <section class="view" id="v-numeros" hidden>
     <h2 class="title">Números de Mr. Cake</h2>
-    <p class="lede">Lo que vería el dueño de la marca de todas las sucursales, al día y sin esperar el cierre de mes.</p>
+    <p class="lede">Lo que vería el dueño de la marca de todas las sucursales, al día y sin esperar el cierre de mes. Incluye los últimos 30 días y los pedidos por entregar.</p>
     <div class="kpis" id="kpis"></div>
     <div class="two">
       <div class="panel"><h3>Ventas por sucursal</h3><div id="bars-suc"></div></div>
@@ -336,7 +410,9 @@ var ESTADOS=[
   {id:'recibido',nombre:'Recibido'},{id:'horno',nombre:'En horno'},{id:'decorado',nombre:'Decorando'},
   {id:'listo',nombre:'Listo para entregar'},{id:'entregado',nombre:'Entregado'}
 ];
-var STORE='mrcake-pedidos-v1';
+var OCASIONES=[{id:'',nombre:'Sin especificar'},{id:'cumpleanos',nombre:'Cumpleaños'},{id:'aniversario',nombre:'Aniversario'},{id:'xv',nombre:'XV años'},{id:'boda',nombre:'Boda'},{id:'graduacion',nombre:'Graduación'},{id:'bautizo',nombre:'Bautizo o primera comunión'},{id:'otro',nombre:'Otro'}];
+function ocasionNombre(id){for(var i=0;i<OCASIONES.length;i++)if(OCASIONES[i].id===id)return OCASIONES[i].nombre;return ''}
+var STORE='mrcake-pedidos-v2';
 function prod(id){for(var i=0;i<CATALOGO.length;i++)if(CATALOGO[i].id===id)return CATALOGO[i];return null}
 function suc(id){for(var i=0;i<SUCURSALES.length;i++)if(SUCURSALES[i].id===id)return SUCURSALES[i];return SUCURSALES[0]}
 function isCake(p){return p&&(p.sizes.m||p.sizes.g)}
@@ -361,24 +437,41 @@ function resumenItems(o){return (o.items||[]).map(function(it){return it.qty+' '
 
 /* Estado */
 function seed(){
-  var st={prices:defaultPrices(),orders:[],seq:1};
+  var st={prices:defaultPrices(),orders:[],seq:1,enviados:{}};
   var ej=[
-    {nombre:'Carmen Treviño',telefono:'8620000001',sucursal:'nava-drive',items:[{pid:'tortuga',size:'g',qty:1,mensaje:'Feliz cumple Papá'}],fecha:addDays(0),hora:'16:00',estado:'listo',anticipoPct:'50'},
-    {nombre:'Javier Garza',telefono:'8620000002',sucursal:'nava-centro',items:[{pid:'tresleches',size:'g',qty:1,mensaje:''},{pid:'ind-oreo',size:'c',qty:4,mensaje:''}],fecha:addDays(1),hora:'12:00',estado:'decorado',anticipoPct:'100'},
-    {nombre:'Lucía Flores',telefono:'8770000003',sucursal:'acuna-lm',items:[{pid:'nutella',size:'m',qty:1,mensaje:'Felicidades Lucía'}],fecha:addDays(2),hora:'17:00',estado:'horno',anticipoPct:'50'},
-    {nombre:'Raúl Ibarra',telefono:'8770000004',sucursal:'acuna-5f',items:[{pid:'chtortuga',size:'g',qty:1,mensaje:''},{pid:'muffin-nuez',size:'n',qty:6,mensaje:''}],fecha:addDays(3),hora:'10:00',estado:'recibido',anticipoPct:'0'},
-    {nombre:'Daniela Cárdenas',telefono:'8620000005',sucursal:'nava-centro',items:[{pid:'pinacolada',size:'g',qty:1,mensaje:'Feliz aniversario'}],fecha:addDays(4),hora:'18:00',estado:'recibido',anticipoPct:'50'},
+    {nombre:'Sandra Villarreal',telefono:'8620000011',sucursal:'nava-centro',items:[{pid:'nutella',size:'g',qty:1,mensaje:'Feliz cumple Mamá'}],fecha:addDays(6-365),hora:'17:00',estado:'entregado',anticipoPct:'100',ocasion:'cumpleanos',festejado:'Mamá'},
+    {nombre:'Óscar Méndez',telefono:'8770000012',sucursal:'acuna-lm',items:[{pid:'emperador',size:'g',qty:1,mensaje:'Felicidades Óscar'}],fecha:addDays(11-365),hora:'18:00',estado:'entregado',anticipoPct:'100',ocasion:'cumpleanos',festejado:'Óscar'},
+    {nombre:'Patricia Garza',telefono:'8620000013',sucursal:'nava-drive',items:[{pid:'pinacolada',size:'g',qty:1,mensaje:'Feliz aniversario'}],fecha:addDays(19-365),hora:'19:00',estado:'entregado',anticipoPct:'100',ocasion:'aniversario',festejado:'Patricia y Luis'},
+    {nombre:'Fernando Rodríguez',telefono:'8770000014',sucursal:'acuna-5f',items:[{pid:'tresleches',size:'m',qty:1,mensaje:'Feliz cumple Sofi'},{pid:'ind-oreo',size:'c',qty:6,mensaje:''}],fecha:addDays(27-365),hora:'16:00',estado:'entregado',anticipoPct:'100',ocasion:'cumpleanos',festejado:'Sofi'},
+    {nombre:'Sandra Villarreal',telefono:'8620000011',sucursal:'nava-centro',items:[{pid:'frutas',size:'g',qty:1,mensaje:'Felicidades graduado'}],fecha:addDays(-120),hora:'13:00',estado:'entregado',anticipoPct:'100',ocasion:'graduacion',festejado:'Diego'},
+    {nombre:'Carmen Treviño',telefono:'8620000001',sucursal:'nava-drive',items:[{pid:'tortuga',size:'g',qty:1,mensaje:'Feliz cumple Papá'}],fecha:addDays(0),hora:'16:00',estado:'listo',anticipoPct:'50',ocasion:'cumpleanos',festejado:'Papá'},
+    {nombre:'Javier Garza',telefono:'8620000002',sucursal:'nava-centro',items:[{pid:'tresleches',size:'g',qty:1,mensaje:''},{pid:'ind-oreo',size:'c',qty:4,mensaje:''}],fecha:addDays(0),hora:'12:00',estado:'decorado',anticipoPct:'100'},
+    {nombre:'Ana Sofía Treviño',telefono:'8620000007',sucursal:'nava-centro',items:[{pid:'emperador',size:'m',qty:1,mensaje:'Feliz cumple Ana'},{pid:'muffin-chispas',size:'n',qty:6,mensaje:''}],fecha:addDays(0),hora:'18:30',estado:'horno',anticipoPct:'50',ocasion:'cumpleanos',festejado:'Ana'},
+    {nombre:'Lucía Flores',telefono:'8770000003',sucursal:'acuna-lm',items:[{pid:'nutella',size:'m',qty:1,mensaje:'Felicidades Lucía'}],fecha:addDays(1),hora:'17:00',estado:'horno',anticipoPct:'50',ocasion:'cumpleanos',festejado:'Lucía'},
+    {nombre:'Raúl Ibarra',telefono:'8770000004',sucursal:'acuna-5f',items:[{pid:'chtortuga',size:'g',qty:1,mensaje:''},{pid:'muffin-nuez',size:'n',qty:6,mensaje:''}],fecha:addDays(2),hora:'10:00',estado:'recibido',anticipoPct:'0'},
+    {nombre:'Daniela Cárdenas',telefono:'8620000005',sucursal:'nava-centro',items:[{pid:'pinacolada',size:'g',qty:1,mensaje:'Feliz aniversario'}],fecha:addDays(4),hora:'18:00',estado:'recibido',anticipoPct:'50',ocasion:'aniversario'},
     {nombre:'Miguel Ramos',telefono:'8770000006',sucursal:'acuna-lm',items:[{pid:'frutas',size:'g',qty:1,mensaje:''},{pid:'emperador',size:'m',qty:1,mensaje:''}],fecha:addDays(-1),hora:'15:00',estado:'entregado',anticipoPct:'100'}
   ];
+  ej.sort(function(x,y){return (x.fecha+x.hora)<(y.fecha+y.hora)?-1:1});
   state=st;
-  ej.forEach(function(o){var c=calc(o);o.id='o'+st.seq;o.folio='MC-'+String(st.seq).padStart(4,'0');st.seq++;o.total=c.total;o.costo=c.costo;o.ejemplo=true;o.notas='';st.orders.push(o)});
+  ej.forEach(function(o){var c=calc(o);o.id='o'+st.seq;o.folio='MC-'+String(st.seq).padStart(4,'0');st.seq++;o.total=c.total;o.costo=c.costo;o.ejemplo=true;o.notas=o.notas||'';o.ocasion=o.ocasion||'';o.festejado=o.festejado||'';st.orders.push(o)});
   return st;
 }
-function load(){try{var s=localStorage.getItem(STORE);if(s){var p=JSON.parse(s);if(p&&p.prices&&p.orders)return p}}catch(e){}return null}
+function load(k){try{var s=localStorage.getItem(k||STORE);if(s){var p=JSON.parse(s);if(p&&p.prices&&p.orders)return p}}catch(e){}return null}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){}}
-var state=load();if(!state)state=seed();save();
+var state=load();
+if(!state){
+  state=seed();
+  var old=load('mrcake-pedidos-v1');
+  if(old){
+    old.orders.filter(function(o){return !o.ejemplo}).forEach(function(o){o.id='o'+state.seq;o.folio='MC-'+String(state.seq).padStart(4,'0');state.seq++;o.ocasion=o.ocasion||'';o.festejado=o.festejado||'';state.orders.push(o)});
+    Object.keys(old.prices||{}).forEach(function(k){if(state.prices[k])state.prices[k]=old.prices[k]});
+  }
+}
+if(!state.enviados)state.enviados={};
+save();
 
-function freshDraft(){return {sucursal:'nava-centro',items:[],focus:-1,fecha:'',hora:'16:00',nombre:'',telefono:'',notas:'',anticipoPct:'50'}}
+function freshDraft(){return {sucursal:'nava-centro',items:[],focus:-1,fecha:'',hora:'16:00',nombre:'',telefono:'',notas:'',anticipoPct:'50',ocasion:'',festejado:''}}
 var draft=freshDraft();
 var catSel='vainilla';
 
@@ -527,6 +620,7 @@ function renderForm(){
   html+='<fieldset><legend>Sucursal de entrega</legend><div class="chips">'+SUCURSALES.map(function(s){return '<label class="chip"><input type="radio" name="sucursal" value="'+s.id+'"'+(draft.sucursal===s.id?' checked':'')+'><span class="n">'+esc(s.nombre)+'</span><span class="p">'+esc(s.dir)+'</span></label>'}).join('')+'</div></fieldset>';
   html+='<fieldset><legend>Productos<span class="hint">toca un tamaño para agregarlo al pedido</span></legend><div class="cats" role="group" aria-label="Categorías">'+CATS.map(function(c){return '<button type="button" class="cat" data-cat="'+c.id+'" aria-pressed="'+(catSel===c.id)+'">'+esc(c.nombre)+'</button>'}).join('')+'</div><div class="grid" id="grid">'+renderGrid()+'</div></fieldset>';
   html+='<fieldset><legend>Entrega</legend><div class="fields"><label class="f">Fecha<input type="date" name="fecha" min="'+isoLocal(new Date())+'" value="'+esc(draft.fecha)+'"></label><label class="f">Hora<select name="hora">'+HORAS.map(function(h){return '<option value="'+h+'"'+(draft.hora===h?' selected':'')+'>'+fHora.format(new Date('2000-01-01T'+h+':00'))+'</option>'}).join('')+'</select></label></div></fieldset>';
+  html+='<fieldset><legend>Ocasión<span class="hint">sirve para recordarle al cliente el próximo año</span></legend><div class="fields"><label class="f">¿Qué celebran?<select name="ocasion">'+OCASIONES.map(function(o){return '<option value="'+o.id+'"'+(draft.ocasion===o.id?' selected':'')+'>'+o.nombre+'</option>'}).join('')+'</select></label><label class="f">¿Para quién?<input name="festejado" maxlength="40" value="'+esc(draft.festejado)+'" placeholder="Ej. Mamá, Sofi"></label></div></fieldset>';
   html+='<fieldset><legend>Cliente</legend><div class="fields"><label class="f">Nombre<input name="nombre" value="'+esc(draft.nombre)+'" placeholder="Nombre del cliente"></label><label class="f">Teléfono<input name="telefono" inputmode="tel" value="'+esc(draft.telefono)+'" placeholder="10 dígitos"></label><label class="f">Anticipo<select name="anticipoPct"><option value="0"'+(draft.anticipoPct==='0'?' selected':'')+'>Sin anticipo</option><option value="50"'+(draft.anticipoPct==='50'?' selected':'')+'>50%</option><option value="100"'+(draft.anticipoPct==='100'?' selected':'')+'>Pagado completo</option></select></label></div><div class="fields" style="margin-top:12px"><label class="f">Notas para producción<textarea name="notas" rows="2" placeholder="Alergias, indicaciones especiales">'+esc(draft.notas)+'</textarea></label></div></fieldset>';
   $('#form').innerHTML=html;
 }
@@ -619,6 +713,7 @@ dlg.addEventListener('click',function(e){
   if(t.hasAttribute('data-close'))closeDlg();
   if(t.getAttribute('data-go')){closeDlg();show(t.getAttribute('data-go'))}
   if(t.id==='copy')copyText($('#wa-txt'));
+  if(t.getAttribute('data-sent')){state.enviados[t.getAttribute('data-sent')]=isoLocal(new Date());save();closeDlg();renderClientes();updateCount();toast('Marcado como enviado')}
   if(t.getAttribute('data-del')){
     if(t.getAttribute('data-armed')){state.orders=state.orders.filter(function(o){return o.id!==t.getAttribute('data-del')});save();closeDlg();renderBoard();updateCount();toast('Pedido eliminado')}
     else{t.setAttribute('data-armed','1');t.textContent='Confirmar eliminación'}
@@ -644,7 +739,7 @@ function dueBadge(o){
 function sorted(list){return list.slice().sort(function(a,b){return dueDate(a)-dueDate(b)})}
 function renderBoard(){
   $('#suc-filter').innerHTML=[{id:'todas',nombre:'Todas las sucursales'}].concat(SUCURSALES).map(function(s){return '<button class="cat" data-suc="'+s.id+'" aria-pressed="'+(sucFilter===s.id)+'">'+esc(s.nombre)+'</button>'}).join('');
-  var orders=state.orders.filter(function(o){return sucFilter==='todas'||o.sucursal===sucFilter}),html='';
+  var q=norm($('#q').value),cutoff=addDays(-14),orders=state.orders.filter(function(o){if(sucFilter!=='todas'&&o.sucursal!==sucFilter)return false;if(q)return matches(o,q);return o.estado!=='entregado'||o.fecha>=cutoff}),html='';
   ESTADOS.forEach(function(st,i){
     var list=sorted(orders.filter(function(o){return o.estado===st.id}));if(st.id==='entregado')list.reverse();
     html+='<section class="col" aria-label="'+st.nombre+'"><h3>'+st.nombre+'<span>'+list.length+'</span></h3>';
@@ -660,6 +755,7 @@ function renderBoard(){
     html+='</section>';
   });
   $('#board').innerHTML=html;
+  $('#q-count').textContent=q?(orders.length===1?'1 pedido encontrado':orders.length+' pedidos encontrados'):'';
   var act=orders.filter(function(o){return o.estado!=='entregado'}),now=new Date(),today=isoLocal(now);
   var hoy=act.filter(function(o){return o.fecha===today}).length,late=act.filter(function(o){return dueDate(o)<now}).length;
   $('#prod-lede').textContent=act.length?(hoy===1?'1 pedido se entrega hoy.':hoy+' pedidos se entregan hoy.')+(late?' '+(late===1?'1 está atrasado.':late+' están atrasados.'):' Ninguno atrasado.'):'No hay pedidos activos aquí. Captura uno en Nuevo pedido.';
@@ -676,14 +772,14 @@ function openOrder(id){
   var o=byId(id);if(!o)return;var d=dueDate(o),ant=o.total*Number(o.anticipoPct)/100,st=ESTADOS.filter(function(s){return s.id===o.estado})[0],s=suc(o.sucursal);
   openDlg('<h3>'+esc(o.folio)+'</h3><p class="sum-sub">'+esc(st.nombre)+(o.ejemplo?'. Pedido de ejemplo':'')+'</p>'+
     '<dl class="dl"><dt>Cliente</dt><dd>'+esc(o.nombre)+'<br>'+esc(o.telefono)+'</dd><dt>Productos</dt><dd>'+o.items.map(function(it){return esc(it.qty+' '+itemLabel(it))+(it.mensaje?', mensaje "'+esc(it.mensaje)+'"':'')}).join('<br>')+'</dd>'+
-    '<dt>Sucursal</dt><dd>'+esc(s.nombre)+'<br><small style="color:var(--ink-2)">'+esc(s.dir)+'</small></dd><dt>Entrega</dt><dd>'+esc(fFecha.format(d)+', '+fHora.format(d))+'</dd><dt>Total</dt><dd>'+$m(o.total)+' (anticipo '+$m(ant)+', resta '+$m(o.total-ant)+')</dd>'+(o.notas?'<dt>Notas</dt><dd>'+esc(o.notas)+'</dd>':'')+'</dl>'+
+    (o.ocasion?'<dt>Ocasión</dt><dd>'+esc(ocasionNombre(o.ocasion))+(o.festejado?', '+esc(o.festejado):'')+'</dd>':'')+'<dt>Sucursal</dt><dd>'+esc(s.nombre)+'<br><small style="color:var(--ink-2)">'+esc(s.dir)+'</small></dd><dt>Entrega</dt><dd>'+esc(fFecha.format(d)+', '+fHora.format(d))+'</dd><dt>Total</dt><dd>'+$m(o.total)+' (anticipo '+$m(ant)+', resta '+$m(o.total-ant)+')</dd>'+(o.notas?'<dt>Notas</dt><dd>'+esc(o.notas)+'</dd>':'')+'</dl>'+
     '<div class="row"><button class="btn" data-close>Cerrar</button><button class="btn btn-danger" data-del="'+o.id+'">Eliminar pedido</button></div>');
 }
 $('#clear-demo').addEventListener('click',function(){state.orders=state.orders.filter(function(o){return !o.ejemplo});save();renderBoard();updateCount();toast('Pedidos de ejemplo borrados')});
 
 /* Números */
 function renderNums(){
-  var os=state.orders,act=os.filter(function(o){return o.estado!=='entregado'}),ventas=0,cobrado=0,costo=0;
+  var os=state.orders.filter(function(o){return o.fecha>=addDays(-30)}),act=os.filter(function(o){return o.estado!=='entregado'}),ventas=0,cobrado=0,costo=0;
   os.forEach(function(o){ventas+=o.total;costo+=o.costo;cobrado+=o.estado==='entregado'?o.total:o.total*Number(o.anticipoPct)/100});
   $('#kpis').innerHTML=[['Pedidos activos',act.length],['Ventas registradas',$m(ventas)],['Ya cobrado',$m(cobrado)],['Por cobrar',$m(ventas-cobrado)],['Margen estimado',ventas?Math.round((ventas-costo)/ventas*100)+'%':'—']].map(function(k){return '<div class="kpi"><div>'+k[0]+'</div><b>'+k[1]+'</b></div>'}).join('');
   var bySuc={};os.forEach(function(o){bySuc[o.sucursal]=(bySuc[o.sucursal]||0)+o.total});
@@ -712,13 +808,112 @@ $('#price-tables').addEventListener('input',function(e){
 });
 $('#reset-prices').addEventListener('click',function(){state.prices=defaultPrices();save();renderPrices();toast('Precios del catálogo restablecidos')});
 
-function updateCount(){$('#count-prod').textContent=state.orders.filter(function(o){return o.estado!=='entregado'}).length}
+/* Búsqueda */
+function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim()}
+function matches(o,q){
+  var hay=norm([o.nombre,o.folio,o.festejado,o.items.map(function(it){return itemLabel(it)+' '+(it.mensaje||'')}).join(' ')].join(' '));
+  if(hay.indexOf(q)>-1)return true;
+  var dg=q.replace(/\D/g,'');return dg.length>=3&&String(o.telefono).indexOf(dg)>-1;
+}
+$('#q').addEventListener('input',renderBoard);
+function fmtTel(d){d=String(d||'');return d.length===10?d.slice(0,3)+' '+d.slice(3,6)+' '+d.slice(6):d}
+function cap(x){return x.charAt(0).toUpperCase()+x.slice(1)}
+function estadoNombre(id){for(var i=0;i<ESTADOS.length;i++)if(ESTADOS[i].id===id)return ESTADOS[i].nombre;return id}
+
+/* Agenda del día */
+var agDate=isoLocal(new Date()),agSuc='todas';
+function shiftDay(iso,n){var d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return isoLocal(d)}
+function renderAgenda(){
+  $('#ag-date').value=agDate;
+  $('#ag-suc').innerHTML=[{id:'todas',nombre:'Todas las sucursales'}].concat(SUCURSALES).map(function(x){return '<button class="cat" data-agsuc="'+x.id+'" aria-pressed="'+(agSuc===x.id)+'">'+esc(x.nombre)+'</button>'}).join('');
+  var list=sorted(state.orders.filter(function(o){return o.fecha===agDate&&(agSuc==='todas'||o.sucursal===agSuc)}));
+  var d=new Date(agDate+'T12:00:00');
+  var html='<div class="sheet-head"><h3>Hoja de producción</h3><span>'+esc(cap(fFecha.format(d)))+'. '+esc(agSuc==='todas'?'Todas las sucursales':'Sucursal '+suc(agSuc).nombre)+'</span></div>';
+  if(!list.length){$('#ag-sheet').innerHTML=html+'<p class="empty">No hay pedidos para este día.</p>';return}
+  var sums={},keys=[],enteros=0,charolas=0,piezas=0;
+  list.forEach(function(o){o.items.forEach(function(it){var k=it.pid+'|'+it.size;if(!sums[k]){sums[k]={pid:it.pid,size:it.size,qty:0,msgs:[]};keys.push(k)}sums[k].qty+=it.qty;if(it.mensaje)sums[k].msgs.push('"'+it.mensaje+'"');var p=prod(it.pid);if(isCake(p))enteros+=it.qty;else if(p&&p.cat==='individuales')charolas+=it.qty;else piezas+=it.qty})});
+  var idx={};CATALOGO.forEach(function(p,i){idx[p.id]=i});
+  keys.sort(function(a,b){var A=sums[a],B=sums[b];return idx[A.pid]-idx[B.pid]||(A.size<B.size?1:-1)});
+  html+='<div class="tbl-wrap"><table><tr><th>Cant.</th><th>Producto</th><th>Mensajes</th><th>Listo</th></tr>'+keys.map(function(k){var x=sums[k],p=prod(x.pid);
+    return '<tr><td class="q">'+x.qty+'</td><td><b>'+esc(p.nombre)+'</b><br><small>'+esc(SIZE_LABEL[x.size])+'</small></td><td>'+(x.msgs.length?esc(x.msgs.join(', ')):'<small>Sin mensaje</small>')+'</td><td><span class="box" aria-hidden="true"></span></td></tr>'}).join('')+'</table></div>';
+  html+='<div class="totals"><span><b>'+list.length+'</b> '+(list.length===1?'pedido':'pedidos')+'</span><span><b>'+enteros+'</b> pasteles enteros</span><span><b>'+charolas+'</b> charolitas</span><span><b>'+piezas+'</b> muffins</span></div>';
+  html+='<h4>Entregas del día</h4><ul class="deliv">'+list.map(function(o){
+    var resta=o.estado==='entregado'?0:o.total*(1-Number(o.anticipoPct)/100),msgs=o.items.filter(function(it){return it.mensaje}).map(function(it){return '"'+it.mensaje+'"'});
+    var cls=o.estado==='entregado'?'b-done':o.estado==='listo'?'b-tomorrow':'b-later';
+    return '<li><span class="hr">'+esc(fHora.format(dueDate(o)))+'</span><span><b>'+esc(o.nombre)+'</b> <small style="display:inline">'+esc(o.folio)+', '+esc(fmtTel(o.telefono))+'</small><small>'+esc(resumenItems(o))+'</small>'+(msgs.length?'<small>Mensaje: '+esc(msgs.join(', '))+'</small>':'')+(agSuc==='todas'?'<small>Sucursal '+esc(suc(o.sucursal).nombre)+'</small>':'')+(o.notas?'<small>Nota: '+esc(o.notas)+'</small>':'')+'</span>'+
+      '<span class="right"><span class="badge '+cls+'">'+esc(estadoNombre(o.estado))+'</span><span>'+(resta>0?'Cobrar '+$m(resta):'Pagado')+'</span></span></li>'}).join('')+'</ul>';
+  $('#ag-sheet').innerHTML=html;
+}
+$('#ag-prev').addEventListener('click',function(){agDate=shiftDay(agDate,-1);renderAgenda()});
+$('#ag-next').addEventListener('click',function(){agDate=shiftDay(agDate,1);renderAgenda()});
+$('#ag-today').addEventListener('click',function(){agDate=isoLocal(new Date());renderAgenda()});
+$('#ag-date').addEventListener('change',function(e){agDate=e.target.value||isoLocal(new Date());renderAgenda()});
+$('#ag-suc').addEventListener('click',function(e){var b=e.target.closest('[data-agsuc]');if(b){agSuc=b.getAttribute('data-agsuc');renderAgenda();var n=$('[data-agsuc="'+agSuc+'"]');if(n)n.focus()}});
+$('#ag-print').addEventListener('click',function(){try{window.print()}catch(e){toast('Usa Ctrl+P o Cmd+P para imprimir')}});
+
+/* Clientes y recordatorios */
+var VENTANA=45,lastOps=[];
+function nextAnniv(fecha){var p=fecha.split('-'),now=new Date(),t=new Date(now.getFullYear(),now.getMonth(),now.getDate()),d=new Date(now.getFullYear(),+p[1]-1,+p[2]);if(d<t)d.setFullYear(d.getFullYear()+1);return {date:d,days:Math.round((d-t)/86400000)}}
+function opportunities(){
+  var best={},limit=addDays(-300);
+  state.orders.forEach(function(o){
+    if((o.ocasion!=='cumpleanos'&&o.ocasion!=='aniversario')||o.fecha>=limit)return;
+    var k=o.telefono+'|'+o.ocasion+'|'+norm(o.festejado);
+    if(!best[k]||best[k].fecha<o.fecha)best[k]=o;
+  });
+  var out=[];
+  Object.keys(best).forEach(function(k){
+    var o=best[k],a=nextAnniv(o.fecha);if(a.days>VENTANA)return;
+    var ya=state.orders.some(function(x){return x!==o&&x.telefono===o.telefono&&x.estado!=='entregado'&&Math.abs((new Date(x.fecha+'T12:00:00')-a.date)/86400000)<=10});
+    if(!ya)out.push({key:k+'|'+a.date.getFullYear(),o:o,days:a.days,date:a.date});
+  });
+  return out.sort(function(a,b){return a.days-b.days});
+}
+function cuando(n){return n===0?'Hoy':n===1?'Mañana':'En '+n+' días'}
+function reminderText(x){
+  var o=x.o,f=o.festejado,first=o.items.filter(function(it){return isCake(prod(it.pid))})[0]||o.items[0];
+  var oc=o.ocasion==='cumpleanos'?(f?'el cumpleaños de '+f:'su cumpleaños'):(f?'el aniversario de '+f:'su aniversario');
+  return '¡Hola '+o.nombre.split(' ')[0]+'! Te saluda Mr. Cake 🎂\n\nEl año pasado celebraron '+oc+' con nuestro pastel '+itemLabel(first)+'. Ya se acerca otra vez ('+fFecha.format(x.date)+') y nos encantaría ser parte del festejo.\n\n¿Te apartamos su pastel? Puedes recogerlo en Sucursal '+suc(o.sucursal).nombre+'. Solo responde este mensaje y lo dejamos listo.\n\nMr. Cake, en tus momentos especiales.';
+}
+function renderClientes(){
+  lastOps=opportunities();
+  var pend=lastOps.filter(function(x){return !state.enviados[x.key]}),valor=pend.reduce(function(t,x){return t+x.o.total},0);
+  $('#opp-callout').innerHTML='<div><b>'+pend.length+'</b><span>'+(pend.length===1?'cliente por contactar':'clientes por contactar')+' en los próximos '+VENTANA+' días</span></div><div><b>'+$m(valor)+'</b><span>en ventas posibles, según lo que pidieron la vez pasada</span></div>';
+  $('#opps').innerHTML=lastOps.length?lastOps.map(function(x,i){
+    var o=x.o,sent=state.enviados[x.key];
+    return '<article class="opp'+(sent?' sent':'')+'"><span class="badge '+(sent?'b-done':x.days<=7?'b-today':'b-tomorrow')+'">'+(sent?'Mensaje enviado':cuando(x.days))+'</span><h4>'+esc(o.nombre)+'</h4>'+
+      '<p class="who">'+esc(ocasionNombre(o.ocasion))+(o.festejado?' de '+esc(o.festejado):'')+', '+esc(fFecha.format(x.date))+'</p>'+
+      '<p>La vez pasada: '+esc(resumenItems(o))+' ('+$m(o.total)+')</p><p>Sucursal '+esc(suc(o.sucursal).nombre)+'. '+esc(fmtTel(o.telefono))+'</p>'+
+      '<button class="btn '+(sent?'':'btn-primary')+'" data-opp="'+i+'">'+(sent?'Ver mensaje':'Preparar mensaje')+'</button></article>'}).join(''):'<p class="empty">No hay cumpleaños ni aniversarios en los próximos '+VENTANA+' días. Esta lista se llena sola conforme se registran pedidos con ocasión.</p>';
+  renderDir();
+}
+$('#opps').addEventListener('click',function(e){
+  var b=e.target.closest('[data-opp]');if(!b)return;var x=lastOps[+b.getAttribute('data-opp')];if(!x)return;
+  var txt=reminderText(x),tel=x.o.telefono.length===10?'52'+x.o.telefono:x.o.telefono,sent=state.enviados[x.key];
+  openDlg('<h3>Mensaje para '+esc(x.o.nombre.split(' ')[0])+'</h3><p class="sum-sub">'+esc(ocasionNombre(x.o.ocasion))+(x.o.festejado?' de '+esc(x.o.festejado):'')+', '+esc(fFecha.format(x.date))+'. Revísalo y ajústalo si quieres antes de mandarlo.</p>'+
+    '<textarea id="wa-txt" aria-label="Mensaje para el cliente">'+esc(txt)+'</textarea>'+
+    '<div class="row"><button class="btn btn-primary" id="copy">Copiar mensaje</button><a class="btn" target="_blank" rel="noopener" href="https://wa.me/'+encodeURIComponent(tel)+'?text='+encodeURIComponent(txt)+'">Abrir en WhatsApp</a></div>'+
+    '<div class="row">'+(sent?'<span class="sum-sub" style="margin:0">Enviado el '+esc(fFechaC.format(new Date(sent+'T12:00:00')))+'</span>':'<button class="btn" data-sent="'+esc(x.key)+'">Marcar como enviado</button>')+'<button class="btn" data-close>Cerrar</button></div>');
+});
+function renderDir(){
+  var g={},q=norm($('#cq').value),dg=q.replace(/\D/g,'');
+  state.orders.forEach(function(o){var c=g[o.telefono];if(!c)c=g[o.telefono]={nombre:o.nombre,tel:o.telefono,n:0,total:0,ult:'',suc:{}};c.n++;c.total+=o.total;if(o.fecha>c.ult){c.ult=o.fecha;c.nombre=o.nombre}c.suc[o.sucursal]=(c.suc[o.sucursal]||0)+1});
+  var rows=Object.keys(g).map(function(k){return g[k]}).filter(function(c){return !q||norm(c.nombre).indexOf(q)>-1||(dg.length>=3&&c.tel.indexOf(dg)>-1)}).sort(function(a,b){return b.total-a.total});
+  $('#dir').innerHTML=rows.length?'<table><tr><th>Cliente</th><th>Teléfono</th><th>Pedidos</th><th>Total comprado</th><th>Último pedido</th><th>Sucursal habitual</th></tr>'+rows.map(function(c){
+    var fav=Object.keys(c.suc).sort(function(a,b){return c.suc[b]-c.suc[a]})[0];
+    return '<tr><td><b>'+esc(c.nombre)+'</b></td><td>'+esc(fmtTel(c.tel))+'</td><td class="m">'+c.n+'</td><td class="m">'+$m(c.total)+'</td><td>'+esc(fFechaC.format(new Date(c.ult+'T12:00:00')))+'</td><td>'+esc(suc(fav).nombre)+'</td></tr>'}).join('')+'</table>':'<p class="empty" style="padding:16px">No hay clientes que coincidan.</p>';
+}
+$('#cq').addEventListener('input',renderDir);
+
+function updateCount(){$('#count-prod').textContent=state.orders.filter(function(o){return o.estado!=='entregado'}).length;var n=opportunities().filter(function(x){return !state.enviados[x.key]}).length,c=$('#count-opps');c.textContent=n;c.hidden=!n}
 function show(v){
   $$('.tab').forEach(function(t){t.setAttribute('aria-selected',String(t.getAttribute('data-view')===v))});
   $$('.view').forEach(function(s){s.hidden=s.id!=='v-'+v});
   if(v==='nuevo'){renderForm();renderSummary()}
   if(v==='produccion')renderBoard();
   if(v==='numeros')renderNums();
+  if(v==='agenda')renderAgenda();
+  if(v==='clientes')renderClientes();
   if(v==='precios')renderPrices();
   window.scrollTo(0,0);
 }
@@ -726,7 +921,7 @@ $$('.tab').forEach(function(t){t.addEventListener('click',function(){show(t.getA
 
 /* IA */
 var sample=null,ctl=null;
-var EJEMPLO='Hola buenas tardes! Quiero encargar un pastel Tortuga grande que diga "Feliz cumple Papá" y 6 charolitas de tres leches. Paso por ellos el sábado como a las 4 a la sucursal del Drive en Nava. Soy Carmen Treviño, mi cel es 862 123 4567. Ah, que el pastel lleve poquita nuez porfa';
+var EJEMPLO='Hola buenas tardes! Quiero encargar un pastel Tortuga grande para el cumpleaños de mi papá, que diga "Feliz cumple Papá", y 6 charolitas de tres leches. Paso por ellos el sábado como a las 4 a la sucursal del Drive en Nava. Soy Carmen Treviño, mi cel es 862 123 4567. Ah, que el pastel lleve poquita nuez porfa';
 function setStatus(m,cls){var s=$('#ia-status');s.textContent=m;s.className='status'+(cls?' '+cls:'')}
 function errCopy(code){return ({not_granted:'La IA no tiene permiso en esta vista. Puedes llenar el pedido a mano.',rate_limited:'Demasiadas solicitudes seguidas. Espera un momento e inténtalo de nuevo.',cancelled:'Lectura detenida.'})[code]||'No se pudo leer el mensaje. Revisa el texto o llena el pedido a mano.'}
 function snapHora(h){var m=/^(\d{1,2}):(\d{2})$/.exec(h||'');if(!m)return null;var mins=Number(m[1])*60+Number(m[2]);mins=Math.round(mins/30)*30;mins=Math.max(540,Math.min(1200,mins));return String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0')}
@@ -740,7 +935,7 @@ async function fillWithAI(){
     'Catálogo (usa solo estos id y tamaños):\n'+cat+'\n\n'+
     'Sucursales: '+SUCURSALES.map(function(s){return s.id+' = '+s.nombre+' ('+s.dir+')'}).join('; ')+'\n\n'+
     'Responde SOLO con un objeto JSON, sin texto adicional, con esta forma:\n'+
-    '{"items":[{"producto":"id","tamano":"m|g|c|n","cantidad":1,"mensaje":"texto escrito en el pastel o vacío"}],"sucursal":"id o null","fecha":"AAAA-MM-DD o null","hora":"HH:MM en 24 horas o null","nombre":"nombre o vacío","telefono":"solo dígitos o vacío","notas":"otras indicaciones o vacío"}\n'+
+    '{"items":[{"producto":"id","tamano":"m|g|c|n","cantidad":1,"mensaje":"texto escrito en el pastel o vacío"}],"sucursal":"id o null","fecha":"AAAA-MM-DD o null","hora":"HH:MM en 24 horas o null","nombre":"nombre o vacío","telefono":"solo dígitos o vacío","notas":"otras indicaciones o vacío","ocasion":"cumpleanos, aniversario, xv, boda, graduacion, bautizo, otro o null","festejado":"para quién es el festejo, por ejemplo Papá o Sofi, o vacío"}\n'+
     'Reglas: "charolita" o "individual" usa los productos ind- con tamaño c. Los muffins usan tamaño n. Si no dice tamaño de un pastel entero, usa g. Si dice un día de la semana, usa la próxima fecha con ese día. Si algo no se menciona, usa null o vacío.\n\n'+
     'Mensaje del cliente:\n"""'+msg+'"""';
   ctl=new AbortController();
@@ -757,6 +952,8 @@ async function fillWithAI(){
     if(typeof r.nombre==='string'&&r.nombre){draft.nombre=r.nombre.slice(0,60);n++}
     if(typeof r.telefono==='string'&&r.telefono){draft.telefono=r.telefono.replace(/\D/g,'').slice(-10);n++}
     if(typeof r.notas==='string'&&r.notas){draft.notas=r.notas.slice(0,200);n++}
+    if(OCASIONES.some(function(x){return x.id&&x.id===r.ocasion})){draft.ocasion=r.ocasion;n++}
+    if(typeof r.festejado==='string'&&r.festejado){draft.festejado=r.festejado.slice(0,40);n++}
     renderForm();renderSummary();
     var f=$('#form');f.classList.remove('flash');void f.offsetWidth;f.classList.add('flash');
     setStatus(n?'Listo: llené '+n+' datos del pedido. Revísalos antes de confirmar.':'No encontré datos de pedido en el mensaje.',n?'ok':'err');
