@@ -247,6 +247,11 @@ label.f select,label.f textarea{border:1px solid var(--line);border-radius:10px;
 ul.items{margin:6px 0 0;padding-left:18px;font-size:14px;color:var(--ink-2)}
 ul.items ul{padding-left:16px;font-size:13px;margin:2px 0}
 .res ul.items{margin:4px 0}
+.wa-box{text-align:left;margin:16px 0;border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--bg)}
+.wa-msg{white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:14px;line-height:1.45;margin:0 0 10px;background:#DCF8C6;color:#111B21;border-radius:12px 12px 2px 12px;padding:10px 12px}
+.btn-wa{background:#25D366;border-color:#25D366;color:#073B1E}
+.btn-wa:hover{filter:brightness(1.05);border-color:#25D366}
+input[aria-invalid="true"]{border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--accent-soft)}
 .golink{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--accent);color:var(--accent);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:600;font-size:14px;text-decoration:none;white-space:nowrap}
 .golink:hover{background:var(--accent-soft)}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:calc(100% - 32px);text-align:center}
@@ -621,7 +626,9 @@ function gridHTML(){
     }).join('')+'</div></article>';
   }).join('')+'</div>';
 }
-function missing(){var m=[];if(!cart.length)m.push('al menos un producto');if(!cliente.nombre.trim())m.push('tu nombre');if(cliente.telefono.replace(/\D/g,'').length!==10)m.push('un teléfono de 10 dígitos');return m}
+function tel10(v){var d=String(v||'').replace(/\D/g,'');if(d.length===12&&d.indexOf('52')===0)d=d.slice(2);else if(d.length===13&&d.indexOf('521')===0)d=d.slice(3);return d}
+function missing(){var m=[];if(!cart.length)m.push('al menos un producto');if(!cliente.nombre.trim())m.push('tu nombre');if(tel10(cliente.telefono).length!==10)m.push('un teléfono de 10 dígitos');return m}
+function showMissing(mm){toast('Falta: '+joinEs(mm));var n=$('#c-nombre'),t=$('#c-tel');if(!cart.length){var g=$('#grid');if(g)g.scrollIntoView({behavior:'smooth',block:'start'});return}if(!cliente.nombre.trim()&&n){n.setAttribute('aria-invalid','true');n.focus();return}if(t){t.setAttribute('aria-invalid','true');t.focus()}}
 function msgInputs(i,it){
   if(!wantsMsg(it))return '';syncMsgs(it);
   if(it.qty===1)return '<input data-msg="'+i+'|0" maxlength="28" placeholder="Mensaje en el pastel (opcional)" value="'+esc(it.mensajes[0])+'" aria-label="Mensaje para '+esc(itemLabel(it))+'">';
@@ -640,11 +647,11 @@ function cartHTML(){
   html+='<div class="total"><span>Total</span><span class="big">'+$m(cartTotal())+'</span></div>';
   html+='<p class="note">Pago completo por transferencia. Al continuar, tus pasteles quedan apartados '+state.cfg.payMin+' minutos mientras pagas.</p>';
   var miss=missing();
-  html+='<button class="btn btn-primary btn-block" id="checkout"'+(miss.length?' disabled':'')+'>Continuar '+(cart.length?'('+$m(cartTotal())+')':'')+'</button><p class="missing" id="miss">'+(miss.length?'Falta: '+esc(joinEs(miss))+'.':'')+'</p>';
+  html+='<button class="btn btn-primary btn-block" id="checkout">Continuar '+(cart.length?'('+$m(cartTotal())+')':'')+'</button><p class="missing" id="miss">'+(miss.length?'Falta: '+esc(joinEs(miss))+'.':'')+'</p>';
   return html;
 }
 function refreshShop(){var g=$('#grid');if(g)g.innerHTML=gridHTML();var c=$('#carrito');if(c)c.innerHTML=cartHTML();updateCartbar()}
-function updateCheckout(){var b=$('#checkout'),m=$('#miss');if(!b)return;var miss=missing();b.disabled=!!miss.length;m.textContent=miss.length?'Falta: '+joinEs(miss)+'.':''}
+function updateCheckout(){var b=$('#checkout'),m=$('#miss');if(!b)return;var miss=missing();m.textContent=miss.length?'Falta: '+joinEs(miss)+'.':''}
 function updateCartbar(){
   var bar=$('#cartbar'),on=screen==='tienda'&&cart.length>0&&!$('#v-tienda').hidden;
   bar.classList.toggle('on',on);
@@ -775,7 +782,7 @@ function checkout(){
   var now=Date.now(),n=state.seq++;
   cart.forEach(syncMsgs);
   var items=JSON.parse(JSON.stringify(cart)).map(function(it){if(it.custom)it.custom.total=customCalc(it.custom).total;return it});
-  var r={id:'r'+n,folio:'WEB-'+pad(n,4),ref:String(1000000+(n*7919)%8999999),sucursal:sel.suc,fecha:sel.fecha,items:items,nombre:cliente.nombre.trim(),telefono:cliente.telefono.replace(/\D/g,''),total:cartTotal(),creado:now,expira:now+(+state.cfg.payMin||20)*60000,estado:'apartado'};
+  var r={id:'r'+n,folio:'WEB-'+pad(n,4),ref:String(1000000+(n*7919)%8999999),sucursal:sel.suc,fecha:sel.fecha,items:items,nombre:cliente.nombre.trim(),telefono:tel10(cliente.telefono),total:cartTotal(),creado:now,expira:now+(+state.cfg.payMin||20)*60000,estado:'apartado'};
   state.reservas.push(r);save();curRes=r.id;screen='pago';renderTienda();window.scrollTo(0,0);focusH();
 }
 function res(){for(var i=0;i<state.reservas.length;i++)if(state.reservas[i].id===curRes)return state.reservas[i];return null}
@@ -800,7 +807,22 @@ function okHTML(){
     '<p class="kicker">PAGO RECIBIDO</p><h2 id="pay-h" tabindex="-1">¡Tu pedido está confirmado!</h2>'+
     '<p>Folio <b>'+esc(r.folio)+'</b>. Pagaste '+$m(r.total)+'.</p><p class="note">Recoge en Sucursal '+esc(s.nombre)+' ('+esc(s.dir)+'), el '+esc(fFecha.format(dateOf(r.fecha)))+'.</p>'+
     '<ul class="items" style="text-align:left">'+r.items.map(itemLines).join('')+'</ul>'+
-    '<p class="note">Te enviamos la confirmación por WhatsApp al '+esc(r.telefono)+'.</p><button class="btn btn-primary btn-block" id="again">Hacer otro pedido</button></div>';
+    waBox(r)+'<button class="btn btn-primary btn-block" id="again">Hacer otro pedido</button></div>';
+}
+function itemText(it){
+  var t='• '+it.qty+' '+itemLabel(it),sub=[];
+  if(isCustom(it.pid))sub=sub.concat(customDetail(it.custom));
+  if(it.detalle){var cc=isComp(it.pid)?byId(COMPLEMENTOS,it.pid):null;sub.push((cc&&cc.pre?cc.pre:'')+it.detalle)}
+  if(wantsMsg(it)){var ms=it.mensajes||[];for(var k=0;k<it.qty;k++){var m=ms[k];if(it.qty>1)sub.push('Pastel '+(k+1)+': '+(m?'"'+m+'"':'sin mensaje'));else if(m)sub.push('Mensaje: "'+m+'"')}}
+  return t+sub.map(function(x){return '\n   '+x}).join('');
+}
+function waText(r){
+  var s=suc(r.sucursal);
+  return '¡Hola '+r.nombre.split(' ')[0]+'! Gracias por tu compra en Mr. Cake 🎂\nTu pedido '+r.folio+' está confirmado y pagado.\n\n'+r.items.map(itemText).join('\n')+'\n\nRecoges en: Sucursal '+s.nombre+' ('+s.dir+')\nDía: '+fFecha.format(dateOf(r.fecha))+'\nTotal pagado: '+$m(r.total)+'\n\nMr. Cake, en tus momentos especiales.';
+}
+function waBox(r){
+  var txt=waText(r),t=r.telefono,fmt=t.length===10?t.slice(0,3)+' '+t.slice(3,6)+' '+t.slice(6):t;
+  return '<div class="wa-box"><p class="lbl" style="margin-top:0">Confirmación por WhatsApp</p><pre class="wa-msg">'+esc(txt)+'</pre><a class="btn btn-wa btn-block" href="https://wa.me/52'+encodeURIComponent(t)+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">Enviar por WhatsApp al '+esc(fmt)+'</a><p class="note">Pruébalo poniendo tu propio número en el pedido. En la versión real, este mensaje se manda solo en cuanto llega el pago.</p></div>';
 }
 function expHTML(){
   return '<div class="paybox center"><p class="kicker">TIEMPO AGOTADO</p><h2 id="pay-h" tabindex="-1">Se acabó el tiempo para pagar</h2><p class="note">Liberamos los pasteles que tenías apartados para que otros clientes puedan comprarlos. Si todavía los quieres, revisa si siguen disponibles.</p><button class="btn btn-primary btn-block" id="back">Volver a mi pedido</button></div>';
@@ -840,7 +862,7 @@ $('#tienda').addEventListener('click',function(e){
     cart.push({pid:'custom',size:'x',qty:design.qty,mensajes:design.mensajes.slice(),detalle:'',custom:c});
     design.qty=1;design.mensajes=[''];refreshShop();toast('Pastel personalizado agregado a tu pedido');return}
   /* Flujo de pago */
-  if(b.id==='checkout'){if(missing().length)return;extrasList=buildExtras();screen=extrasList.length?'extras':'tienda';if(screen==='tienda')return checkout();renderTienda();window.scrollTo(0,0);focusH();return}
+  if(b.id==='checkout'){var mm=missing();if(mm.length){showMissing(mm);return}extrasList=buildExtras();screen=extrasList.length?'extras':'tienda';if(screen==='tienda')return checkout();renderTienda();window.scrollTo(0,0);focusH();return}
   if((a=b.getAttribute('data-xadd'))){var xs=a.split('|');if(addItem(xs[0],xs[1])){renderTienda();var fx=$('[data-xinc]');}return}
   if(b.hasAttribute('data-xinc')){var xi=+b.getAttribute('data-xinc'),xit=cart[xi];if(!isTracked(xit)||disponible(sel.suc,sel.fecha,xit.pid,xit.size)-inCart(xit.pid,xit.size)>0)xit.qty++;renderTienda();var fi=$('[data-xinc="'+xi+'"]');if(fi)fi.focus();return}
   if(b.hasAttribute('data-xdec')){var xj=+b.getAttribute('data-xdec');cart[xj].qty--;if(cart[xj].qty<=0)cart.splice(xj,1);renderTienda();return}
@@ -856,8 +878,8 @@ $('#tienda').addEventListener('click',function(e){
 function focusH(){var h=$('#pay-h');if(h)h.focus()}
 $('#tienda').addEventListener('input',function(e){
   var t=e.target,a;
-  if(t.id==='c-nombre'){cliente.nombre=t.value;updateCheckout();return}
-  if(t.id==='c-tel'){cliente.telefono=t.value;updateCheckout();return}
+  if(t.id==='c-nombre'){cliente.nombre=t.value;t.removeAttribute('aria-invalid');updateCheckout();return}
+  if(t.id==='c-tel'){cliente.telefono=t.value;t.removeAttribute('aria-invalid');updateCheckout();return}
   if((a=t.getAttribute('data-msg'))){var p=a.split('|'),it=cart[+p[0]];syncMsgs(it);it.mensajes[+p[1]]=t.value;return}
   if(t.hasAttribute('data-det')){cart[+t.getAttribute('data-det')].detalle=t.value;return}
   if(t.hasAttribute('data-dmsg')){design.mensajes[+t.getAttribute('data-dmsg')]=t.value;var st=$('#d-stage');if(st)st.innerHTML=cakeSVG(design);return}
