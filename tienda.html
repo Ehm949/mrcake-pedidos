@@ -401,6 +401,12 @@ dialog#pd::backdrop{background:rgba(30,20,24,.55);-webkit-backdrop-filter:blur(4
 .ingr li{background:var(--accent-soft);border-radius:999px;padding:5px 12px;font-size:13px}
 .golink{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);color:var(--ink);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px;text-decoration:none;white-space:nowrap}
 .golink:hover{border-color:var(--accent);color:var(--accent)}
+.op-wait,.op-live{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-2);margin:4px 0 12px}
+.op-wait{background:var(--muted);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.op-wait .dot,.op-live .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+.op-err{background:var(--amber);color:var(--amber-ink);border-radius:12px;padding:12px 16px;margin-bottom:14px}
+.op-err p{margin:0 0 8px;font-size:14px}
 .toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translate(-50%,8px);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:999px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20;max-width:calc(100% - 32px);text-align:center;box-shadow:var(--shadow-lg)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
@@ -688,6 +694,10 @@ function wrapSvg(svg){return '<svg viewBox="0 0 320 250" role="img" aria-hidden=
 
 /* Estado compartido: cupos y reservas */
 var STORE='mrcake-tienda-v1';
+/* PAGOS CON OPENPAY: pega entre las comillas la dirección de tu Worker de Cloudflare,
+   por ejemplo 'https://mrcake-pagos.tunombre.workers.dev'. Esta dirección NO es secreta.
+   Si se deja vacía, la tienda sigue simulando los pagos. */
+var PAGOS_URL='';
 function load(){try{var s=localStorage.getItem(STORE);if(s){var p=JSON.parse(s);if(p&&p.reservas)return p}}catch(e){}return null}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){}}
 var state=load()||{cupos:{},cfg:{minLead:1,sugLead:4,payMin:20,customLead:4},reservas:[],seq:1};
@@ -855,7 +865,7 @@ function catChips(){
 }
 function shopHTML(){
   var days=[],start=firstDate();for(var i=0;i<14;i++)days.push(shiftDay(start,i));
-  var html='<div class="demo-note">Modo demostración. Los pagos se simulan y no se cobra nada.</div>';
+  var html='<div class="demo-note">'+(PAGOS_URL?'Conectado a Openpay en modo de pruebas. No se cobra dinero real.':'Modo demostración. Los pagos se simulan y no se cobra nada.')+'</div>';
   html+=stepEntrega();
   html+='<div class="step"><h2><span>2</span>'+(sel.modo==='domicilio'?'¿Qué día te lo llevamos?':'¿Qué día pasas por él?')+'</h2><div class="chips" role="group" aria-label="Día de recogida">'+days.map(function(d){var dt=dateOf(d);return '<button class="chip day" data-fecha="'+d+'" aria-pressed="'+(sel.fecha===d)+'" aria-label="'+esc(fFecha.format(dt))+'"><small>'+esc(fWd.format(dt).replace('.',''))+'</small><b>'+dt.getDate()+'</b><small>'+esc(fMon.format(dt).replace('.',''))+'</small></button>'}).join('')+'</div></div>';
   html+='<div class="step step-head" id="elige"><h2><span>3</span>Elige tus pasteles</h2></div>';
@@ -1034,22 +1044,50 @@ function checkout(){
   cart.forEach(syncMsgs);
   var items=JSON.parse(JSON.stringify(cart)).map(function(it){if(it.custom)it.custom.total=customCalc(it.custom).total;return it});
   var r={id:'r'+n,folio:'WEB-'+pad(n,4),ref:String(1000000+(n*7919)%8999999),sucursal:sel.suc,fecha:sel.fecha,items:items,nombre:cliente.nombre.trim(),telefono:tel10(cliente.telefono),total:cartTotal(),desglose:totals(),entrega:(sel.modo==='domicilio'?{modo:'domicilio',ciudad:byId(CIUDADES,sel.ciudad).nombre,calle:sel.dir.calle.trim(),colonia:sel.dir.colonia.trim(),ref:sel.dir.ref.trim(),horario:sel.dir.horario}:{modo:'sucursal'}),creado:now,expira:now+(+state.cfg.payMin||20)*60000,estado:'apartado'};
-  state.reservas.push(r);save();curRes=r.id;screen='pago';renderTienda();window.scrollTo(0,0);focusH();
+  state.reservas.push(r);save();curRes=r.id;if(PAGOS_URL)crearCargo(r);screen='pago';renderTienda();window.scrollTo(0,0);focusH();
 }
 function res(){for(var i=0;i<state.reservas.length;i++)if(state.reservas[i].id===curRes)return state.reservas[i];return null}
+/* Conexión con el servidor de pagos */
+var lastCheck=0;
+function pagosApi(){return PAGOS_URL.replace(/\/+$/,'')}
+function crearCargo(r){
+  r.op={cargando:true};
+  fetch(pagosApi()+'/cargo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folio:r.folio,monto:r.total,nombre:r.nombre,telefono:r.telefono})})
+    .then(function(x){return x.json().then(function(j){if(!x.ok)throw j;return j})})
+    .then(function(j){r.op={id:j.id,clabe:j.clabe,referencia:j.referencia,convenio:j.convenio,banco:j.banco,recibo:j.recibo,estado:j.estado};save();if(screen==='pago'&&curRes===r.id){renderTienda();focusH()}})
+    .catch(function(e){var msg=(e&&e.detalle)||(e&&e.error)||'Revisa tu conexión.';if(e&&e.error==='origen_no_permitido')msg='El servidor no reconoce esta página. Revisa ALLOWED_ORIGINS en Cloudflare.';r.op={error:msg};save();if(screen==='pago'&&curRes===r.id)renderTienda()});
+}
+function revisarPago(r,manual){
+  if(!PAGOS_URL||!r||!r.op||!r.op.id||r.estado!=='apartado'||r.op.revisando)return;
+  r.op.revisando=true;
+  fetch(pagosApi()+'/estado?id='+encodeURIComponent(r.op.id)).then(function(x){return x.json()}).then(function(j){
+    r.op.revisando=false;r.op.estado=j.estado;
+    if(j.estado==='completed'){r.estado='pagado';r.pagado=Date.now();save()}
+    else if(manual)toast('Todavía no llega el pago. Estado en Openpay: '+(j.estado||'desconocido'));
+  }).catch(function(){r.op.revisando=false;if(manual)toast('No se pudo revisar el pago')});
+}
+function fmtClabe(c){c=String(c||'');return c.length===18?c.slice(0,3)+' '+c.slice(3,6)+' '+c.slice(6,10)+' '+c.slice(10,14)+' '+c.slice(14):c}
+function bankBlock(r,clabeDemo){
+  function row(l,v,copy,cls){return '<dt>'+l+'</dt><dd'+(cls?' class="'+cls+'"':'')+'>'+esc(v)+'</dd>'+(copy?'<button class="btn btn-sm" data-copy="'+esc(String(v).replace(/ /g,''))+'">Copiar</button>':'<span></span>')}
+  if(!PAGOS_URL)return '<dl class="bank">'+row('Monto exacto',$m(r.total),0,'amount')+row('CLABE',clabeDemo,1)+row('Referencia',r.ref,1)+row('Beneficiario','Mr. Cake')+'</dl>';
+  var o=r.op||{};
+  if(o.error)return '<div class="op-err" role="alert"><p><b>No pudimos generar tu referencia de pago.</b> '+esc(o.error)+'</p><button class="btn btn-sm" id="op-retry">Intentar de nuevo</button></div>';
+  if(!o.id)return '<div class="op-wait" role="status"><span class="dot"></span>Generando tu referencia de pago con Openpay…</div>';
+  return '<dl class="bank">'+row('Monto exacto',$m(r.total),0,'amount')+(o.banco?row('Banco',o.banco):'')+row('CLABE',fmtClabe(o.clabe),1)+row('Referencia',o.referencia||'',1)+(o.convenio?row('Convenio CIE',o.convenio,1):'')+row('Beneficiario','Mr. Cake')+'</dl>'+
+    (o.convenio?'<p class="note">Si pagas desde BBVA, usa el convenio CIE y la referencia. Desde otro banco, usa la CLABE y la referencia.</p>':'')+
+    '<div class="op-live" role="status"><span class="dot"></span>Revisamos tu pago automáticamente cada 10 segundos.</div>'+
+    '<div class="row" style="margin-bottom:12px"><button class="btn btn-sm" id="op-check">Ya pagué, revisar ahora</button>'+(o.recibo?'<a class="btn btn-sm" href="'+esc(o.recibo)+'" target="_blank" rel="noopener">Ver ficha de pago</a>':'')+'</div>';
+}
 function payHTML(){
   var r=res();if(!r)return '';var s=suc(r.sucursal),left=r.expira-Date.now();
   var clabe='646180'+pad((+r.ref)%1000000000000,12);
   clabe=clabe.slice(0,3)+' '+clabe.slice(3,6)+' '+clabe.slice(6,10)+' '+clabe.slice(10,14)+' '+clabe.slice(14);
   return '<div class="paybox"><p class="kicker">ÚLTIMO PASO</p><h2 id="pay-h" tabindex="-1">Transfiere para confirmar tu pedido</h2>'+
     '<div class="timer'+(left<120000?' low':'')+'" id="timer"><span>Tus pasteles están apartados durante</span><b id="cd">'+mmss(left)+'</b></div>'+
-    '<dl class="bank"><dt>Monto exacto</dt><dd class="amount">'+$m(r.total)+'</dd><span></span>'+
-    '<dt>CLABE</dt><dd>'+clabe+'</dd><button class="btn btn-sm" data-copy="'+clabe.replace(/ /g,'')+'">Copiar</button>'+
-    '<dt>Referencia</dt><dd>'+r.ref+'</dd><button class="btn btn-sm" data-copy="'+r.ref+'">Copiar</button>'+
-    '<dt>Beneficiario</dt><dd>Mr. Cake</dd><span></span></dl>'+
+    bankBlock(r,clabe)+
     '<p class="note">Transfiere desde la app de tu banco con la CLABE y la referencia. En cuanto llegue el pago, tu pedido se confirma solo y te avisamos por WhatsApp. No necesitas mandar comprobante.</p>'+
     '<p class="note"><b>'+esc(r.folio)+'</b>. '+esc(entregaTxt(r))+'.</p><ul class="items">'+r.items.map(itemLines).join('')+'</ul>'+
-    '<div class="demo-box"><p><b>Demostración.</b> Los datos bancarios son de ejemplo. En la versión real, la pasarela de pago genera la CLABE y avisa sola cuando llega el dinero. Simula lo que pasaría:</p><div class="row"><button class="btn btn-primary" id="sim-pay">El cliente pagó</button><button class="btn" id="sim-exp">Se acabó el tiempo</button></div></div>'+
+    '<div class="demo-box"><p>'+(PAGOS_URL?'<b>Modo de pruebas de Openpay.</b> No se cobra dinero real. Si en el sandbox no se puede simular la transferencia, usa estos botones para seguir la demostración:':'<b>Demostración.</b> Los datos bancarios son de ejemplo. En la versión real, la pasarela de pago genera la CLABE y avisa sola cuando llega el dinero. Simula lo que pasaría:')+'</p><div class="row"><button class="btn btn-primary" id="sim-pay">El cliente pagó</button><button class="btn" id="sim-exp">Se acabó el tiempo</button></div></div>'+
     '<p class="center"><button class="linkbtn" id="cancel">Cancelar y regresar a mi pedido</button></p></div>';
 }
 function okHTML(){
@@ -1123,6 +1161,8 @@ $('#tienda').addEventListener('click',function(e){
   if(b.id==='go-pay')return checkout();
   if(b.id==='x-back'){screen='tienda';renderTienda();return}
   if(b.hasAttribute('data-copy'))return copy(b.getAttribute('data-copy'));
+  if(b.id==='op-retry'){var rr=res();if(rr){crearCargo(rr);renderTienda()}return}
+  if(b.id==='op-check'){revisarPago(res(),true);return}
   if(b.id==='sim-pay'){var r=res();if(r&&r.estado==='apartado'){r.estado='pagado';r.pagado=Date.now();save()}cart=[];screen='ok';renderTienda();window.scrollTo(0,0);focusH();return}
   if(b.id==='sim-exp'){var r2=res();if(r2&&r2.estado==='apartado'){r2.expira=Date.now();expireTick()}screen='expirado';renderTienda();window.scrollTo(0,0);focusH();return}
   if(b.id==='cancel'){var r3=res();if(r3&&r3.estado==='apartado'){r3.estado='cancelado';save()}screen='tienda';renderTienda();return}
@@ -1289,8 +1329,8 @@ function runSim(){
 setInterval(function(){
   var changed=expireTick(),now=Date.now();
   if(screen==='pago'){var r=res();
-    if(r&&r.estado!=='apartado'){screen=r.estado==='pagado'?'ok':'expirado';renderTienda();focusH()}
-    else if(r){var cd=$('#cd');if(cd)cd.textContent=mmss(r.expira-now);var tm=$('#timer');if(tm)tm.classList.toggle('low',r.expira-now<120000)}}
+    if(r&&r.estado!=='apartado'){if(r.estado==='pagado')cart=[];screen=r.estado==='pagado'?'ok':'expirado';renderTienda();focusH()}
+    else if(r){if(PAGOS_URL&&r.op&&r.op.id&&now-lastCheck>10000){lastCheck=now;revisarPago(r)}var cd=$('#cd');if(cd)cd.textContent=mmss(r.expira-now);var tm=$('#timer');if(tm)tm.classList.toggle('low',r.expira-now<120000)}}
   else if(changed&&screen==='tienda'&&!$('#v-tienda').hidden){var g=$('#grid');if(g)g.innerHTML=gridHTML()}
   if(!$('#v-panel').hidden){
     if(changed){var l=$('#res-list');if(l)renderPanel()}
