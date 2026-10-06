@@ -697,7 +697,7 @@ var STORE='mrcake-tienda-v1';
 /* PAGOS CON OPENPAY: pega entre las comillas la dirección de tu Worker de Cloudflare,
    por ejemplo 'https://mrcake-pagos.tunombre.workers.dev'. Esta dirección NO es secreta.
    Si se deja vacía, la tienda sigue simulando los pagos. */
-var PAGOS_URL='';
+var PAGOS_URL='https://mrcake-pagos.algo.workers.dev';
 function load(){try{var s=localStorage.getItem(STORE);if(s){var p=JSON.parse(s);if(p&&p.reservas)return p}}catch(e){}return null}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){}}
 var state=load()||{cupos:{},cfg:{minLead:1,sugLead:4,payMin:20,customLead:4},reservas:[],seq:1};
