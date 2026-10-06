@@ -407,6 +407,14 @@ dialog#pd::backdrop{background:rgba(30,20,24,.55);-webkit-backdrop-filter:blur(4
 @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
 .op-err{background:var(--amber);color:var(--amber-ink);border-radius:12px;padding:12px 16px;margin-bottom:14px}
 .op-err p{margin:0 0 8px;font-size:14px}
+.paytabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
+.paytabs button{border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:10px 14px;text-align:left;cursor:pointer;line-height:1.3}
+.paytabs button small{display:block;color:var(--ink-2);font-size:12.5px}
+.paytabs button[aria-selected="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.cardform{display:grid;gap:10px;margin-bottom:14px}
+.cardform label.f input{font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.cc-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.secure{display:flex;gap:6px;align-items:flex-start;margin:0}
 .toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translate(-50%,8px);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:999px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20;max-width:calc(100% - 32px);text-align:center;box-shadow:var(--shadow-lg)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
@@ -1054,8 +1062,8 @@ function crearCargo(r){
   r.op={cargando:true};
   fetch(pagosApi()+'/cargo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folio:r.folio,monto:r.total,nombre:r.nombre,telefono:r.telefono})})
     .then(function(x){return x.json().then(function(j){if(!x.ok)throw j;return j})})
-    .then(function(j){r.op={id:j.id,clabe:j.clabe,referencia:j.referencia,convenio:j.convenio,banco:j.banco,recibo:j.recibo,estado:j.estado};save();if(screen==='pago'&&curRes===r.id){renderTienda();focusH()}})
-    .catch(function(e){var msg=(e&&e.detalle)||(e&&e.error)||'Revisa tu conexión.';if(e&&e.error==='origen_no_permitido')msg='El servidor no reconoce esta página. Revisa ALLOWED_ORIGINS en Cloudflare.';r.op={error:msg};save();if(screen==='pago'&&curRes===r.id)renderTienda()});
+    .then(function(j){r.op={id:j.id,clabe:j.clabe,referencia:j.referencia,convenio:j.convenio,banco:j.banco,recibo:j.recibo,estado:j.estado};save();if(screen==='pago'&&curRes===r.id&&r.metodo!=='tarjeta'){renderTienda();focusH()}})
+    .catch(function(e){var msg=(e&&e.detalle)||(e&&e.error)||'Revisa tu conexión.';if(e&&e.error==='origen_no_permitido')msg='El servidor no reconoce esta página. Revisa ALLOWED_ORIGINS en Cloudflare.';r.op={error:msg};save();if(screen==='pago'&&curRes===r.id&&r.metodo!=='tarjeta')renderTienda()});
 }
 function revisarPago(r,manual){
   if(!PAGOS_URL||!r||!r.op||!r.op.id||r.estado!=='apartado'||r.op.revisando)return;
@@ -1079,22 +1087,86 @@ function bankBlock(r,clabeDemo){
     '<div class="row" style="margin-bottom:12px"><button class="btn btn-sm" id="op-check">Ya pagué, revisar ahora</button>'+(o.recibo?'<a class="btn btn-sm" href="'+esc(o.recibo)+'" target="_blank" rel="noopener">Ver ficha de pago</a>':'')+'</div>';
 }
 function payHTML(){
-  var r=res();if(!r)return '';var s=suc(r.sucursal),left=r.expira-Date.now();
-  var clabe='646180'+pad((+r.ref)%1000000000000,12);
-  clabe=clabe.slice(0,3)+' '+clabe.slice(3,6)+' '+clabe.slice(6,10)+' '+clabe.slice(10,14)+' '+clabe.slice(14);
-  return '<div class="paybox"><p class="kicker">ÚLTIMO PASO</p><h2 id="pay-h" tabindex="-1">Transfiere para confirmar tu pedido</h2>'+
+  var r=res();if(!r)return '';var left=r.expira-Date.now(),card=r.metodo==='tarjeta';
+  var clabe=fmtClabe('646180'+pad((+r.ref)%1000000000000,12));
+  return '<div class="paybox"><p class="kicker">ÚLTIMO PASO</p><h2 id="pay-h" tabindex="-1">Paga para confirmar tu pedido</h2>'+
     '<div class="timer'+(left<120000?' low':'')+'" id="timer"><span>Tus pasteles están apartados durante</span><b id="cd">'+mmss(left)+'</b></div>'+
-    bankBlock(r,clabe)+
-    '<p class="note">Transfiere desde la app de tu banco con la CLABE y la referencia. En cuanto llegue el pago, tu pedido se confirma solo y te avisamos por WhatsApp. No necesitas mandar comprobante.</p>'+
+    '<div class="paytabs" role="tablist" aria-label="Forma de pago"><button role="tab" data-metodo="transferencia" aria-selected="'+(!card)+'"><b>Transferencia</b><small>SPEI o BBVA</small></button><button role="tab" data-metodo="tarjeta" aria-selected="'+card+'"><b>Tarjeta</b><small>Crédito o débito, al instante</small></button></div>'+
+    (card?cardHTML(r):bankBlock(r,clabe)+'<p class="note">Transfiere desde la app de tu banco con la CLABE y la referencia. En cuanto llegue el pago, tu pedido se confirma solo y te avisamos por WhatsApp. No necesitas mandar comprobante.</p>')+
     '<p class="note"><b>'+esc(r.folio)+'</b>. '+esc(entregaTxt(r))+'.</p><ul class="items">'+r.items.map(itemLines).join('')+'</ul>'+
-    '<div class="demo-box"><p>'+(PAGOS_URL?'<b>Modo de pruebas de Openpay.</b> No se cobra dinero real. Si en el sandbox no se puede simular la transferencia, usa estos botones para seguir la demostración:':'<b>Demostración.</b> Los datos bancarios son de ejemplo. En la versión real, la pasarela de pago genera la CLABE y avisa sola cuando llega el dinero. Simula lo que pasaría:')+'</p><div class="row"><button class="btn btn-primary" id="sim-pay">El cliente pagó</button><button class="btn" id="sim-exp">Se acabó el tiempo</button></div></div>'+
+    (card?'':'<div class="demo-box"><p>'+(PAGOS_URL?'<b>Modo de pruebas de Openpay.</b> No se cobra dinero real. Si en el sandbox no se puede simular la transferencia, usa estos botones para seguir la demostración:':'<b>Demostración.</b> Los datos bancarios son de ejemplo. En la versión real, la pasarela de pago genera la CLABE y avisa sola cuando llega el dinero. Simula lo que pasaría:')+'</p><div class="row"><button class="btn btn-primary" id="sim-pay">El cliente pagó</button><button class="btn" id="sim-exp">Se acabó el tiempo</button></div></div>')+
     '<p class="center"><button class="linkbtn" id="cancel">Cancelar y regresar a mi pedido</button></p></div>';
+}
+/* Pago con tarjeta: los datos van directo a Openpay; aquí solo se recibe un token */
+var opCfg=null,opLoading=null,deviceId=null;
+function sandboxMode(){return !PAGOS_URL||!opCfg||opCfg.sandbox!==false}
+function luhn(n){var s=0,alt=false;for(var i=n.length-1;i>=0;i--){var d=+n.charAt(i);if(alt){d*=2;if(d>9)d-=9}s+=d;alt=!alt}return s%10===0}
+function loadScript(src){return new Promise(function(ok,fail){var t=document.createElement('script');t.src=src;t.onload=ok;t.onerror=function(){fail({detalle:'No se pudo cargar la librería de Openpay.'})};document.head.appendChild(t)})}
+function loadOpenpay(){
+  if(opLoading)return opLoading;
+  opLoading=fetch(pagosApi()+'/config').then(function(x){return x.json().then(function(j){if(!x.ok)throw j;return j})}).then(function(cfg){
+    if(!cfg.publicKey)throw {detalle:'Falta configurar OPENPAY_PUBLIC_KEY en Cloudflare.'};
+    opCfg=cfg;
+    return loadScript('https://js.openpay.mx/openpay.v1.min.js').then(function(){return loadScript('https://js.openpay.mx/openpay-data.v1.min.js')});
+  }).then(function(){
+    OpenPay.setId(opCfg.merchantId);OpenPay.setApiKey(opCfg.publicKey);OpenPay.setSandboxMode(!!opCfg.sandbox);
+    deviceId=OpenPay.deviceData.setup('card-form','device_session_id');
+    return opCfg;
+  }).catch(function(e){opLoading=null;throw e});
+  return opLoading;
+}
+function cardMsg(e){
+  var c=String((e&&e.codigo)||(e&&e.error_code)||'');
+  var m={'3001':'El banco rechazó la tarjeta. Intenta con otra o paga por transferencia.','3002':'La tarjeta está vencida.','3003':'La tarjeta no tiene fondos suficientes.','3004':'El banco rechazó la tarjeta por seguridad.','3005':'El banco rechazó la tarjeta por seguridad.','3006':'Esta tarjeta no permite este tipo de compra.','2004':'El número de tarjeta no es válido.','2005':'La fecha de vencimiento ya pasó.','2006':'Falta el código de seguridad.','1001':'Revisa los datos de la tarjeta.'}[c];
+  if(m)return m;
+  if(e&&e.error==='origen_no_permitido')return 'El servidor no reconoce esta página. Revisa ALLOWED_ORIGINS en Cloudflare.';
+  return (e&&e.detalle)||'No se pudo procesar el pago. Revisa tu conexión e intenta de nuevo.';
+}
+function cardHTML(r){
+  var c=r.card||{};
+  if(c.procesando)return '<div class="op-wait" role="status"><span class="dot"></span>Procesando tu pago con Openpay…</div>';
+  return '<form id="card-form" class="cardform" novalidate>'+
+    (c.error?'<div class="op-err" role="alert"><p><b>No se pudo cobrar.</b> '+esc(c.error)+'</p></div>':'')+
+    '<label class="f">Nombre como aparece en la tarjeta<input id="cc-name" autocomplete="cc-name" value="'+esc(c.nombre||'')+'"></label>'+
+    '<label class="f">Número de tarjeta<input id="cc-num" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" maxlength="23"></label>'+
+    '<div class="cc-row"><label class="f">Vencimiento<input id="cc-exp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" maxlength="5"></label><label class="f">Código de seguridad<input id="cc-cvv" inputmode="numeric" autocomplete="cc-csc" placeholder="CVV" maxlength="4"></label></div>'+
+    '<button type="submit" class="btn btn-primary btn-block" id="cc-pay">Pagar '+$m(r.total)+'</button>'+
+    '<p class="note secure">Tus datos de tarjeta van directo a Openpay (BBVA). Mr. Cake nunca los ve ni los guarda.</p>'+
+    (!PAGOS_URL?'<div class="demo-box"><p><b>Demostración.</b> El pago se simula. Usa cualquier número de tarjeta válido, como 4111 1111 1111 1111.</p></div>':
+      (sandboxMode()?'<div class="demo-box"><p><b>Tarjeta de prueba de Openpay:</b> 4111 1111 1111 1111, cualquier fecha futura y cualquier código de 3 dígitos. No se cobra dinero real.</p></div>':''))+
+    '</form>';
+}
+function cardErr(r,msg,nombre){r.card={error:msg,nombre:nombre||''};save();renderTienda();var f=$('#cc-num');if(f)f.focus()}
+function pagado(r,metodo,tarjeta){r.estado='pagado';r.pagado=Date.now();r.metodo=metodo;if(tarjeta)r.tarjeta=tarjeta;r.card={};save();cart=[];screen='ok';renderTienda();window.scrollTo(0,0);focusH()}
+function pagarTarjeta(r){
+  if(!r||r.estado!=='apartado')return;
+  var name=$('#cc-name').value.trim(),num=$('#cc-num').value.replace(/\D/g,''),exp=$('#cc-exp').value.replace(/\D/g,''),cvv=$('#cc-cvv').value.replace(/\D/g,''),mm=+exp.slice(0,2);
+  var err=!name?'Escribe el nombre del titular.':(num.length<15||!luhn(num))?'Revisa el número de tarjeta.':(exp.length!==4||mm<1||mm>12)?'Revisa la fecha de vencimiento (MM/AA).':cvv.length<3?'Revisa el código de seguridad.':'';
+  if(err){cardErr(r,err,name);return}
+  if(!PAGOS_URL){r.card={procesando:true};renderTienda();setTimeout(function(){pagado(r,'tarjeta',{marca:'demo',numero:'XXXX'+num.slice(-4)})},1200);return}
+  var btn=$('#cc-pay');if(btn){btn.disabled=true;btn.textContent='Procesando…'}
+  loadOpenpay().then(function(){
+    return new Promise(function(ok,fail){
+      OpenPay.token.create({card_number:num,holder_name:name,expiration_month:exp.slice(0,2),expiration_year:exp.slice(2),cvv2:cvv},
+        function(res){ok(res.data.id)},
+        function(e){fail({codigo:e&&e.data&&e.data.error_code,detalle:e&&e.data&&e.data.description})});
+    });
+  }).then(function(token){
+    num=exp=cvv='';
+    r.card={procesando:true};renderTienda();
+    return fetch(pagosApi()+'/cargo-tarjeta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folio:r.folio,monto:r.total,nombre:r.nombre,telefono:r.telefono,token_id:token,device_session_id:deviceId,redirect_url:location.origin+location.pathname+'?pago3ds='+encodeURIComponent(r.folio)})})
+      .then(function(x){return x.json().then(function(j){if(!x.ok)throw j;return j})});
+  }).then(function(j){
+    if(j.estado==='completed'){pagado(r,'tarjeta',j.tarjeta);return}
+    if(j.url){r.card={id:j.id,tres_ds:true};r.metodo='tarjeta';save();window.location.href=j.url;return}
+    cardErr(r,'El banco no aprobó el pago. Intenta con otra tarjeta o paga por transferencia.',name);
+  }).catch(function(e){cardErr(r,cardMsg(e),name)});
 }
 function okHTML(){
   var r=res();if(!r)return '';var s=suc(r.sucursal);
   return '<div class="paybox center"><svg class="check" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="34" fill="var(--mint)"/><path d="M22 37 l9 9 l19 -20" fill="none" stroke="var(--mint-ink)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
     '<p class="kicker">PAGO RECIBIDO</p><h2 id="pay-h" tabindex="-1">¡Tu pedido está confirmado!</h2>'+
-    '<p>Folio <b>'+esc(r.folio)+'</b>. Pagaste '+$m(r.total)+(ahorro(r)?' y ahorraste '+$m(ahorro(r)):'')+'.</p><p class="note">'+esc(entregaTxt(r))+'.</p>'+
+    '<p>Folio <b>'+esc(r.folio)+'</b>. Pagaste '+$m(r.total)+(r.metodo==='tarjeta'?' con tarjeta'+(r.tarjeta&&r.tarjeta.numero?' terminación '+String(r.tarjeta.numero).slice(-4):''):'')+(ahorro(r)?' y ahorraste '+$m(ahorro(r)):'')+'.</p><p class="note">'+esc(entregaTxt(r))+'.</p>'+
     '<ul class="items" style="text-align:left">'+r.items.map(itemLines).join('')+'</ul>'+
     waBox(r)+'<button class="btn btn-primary btn-block" id="again">Hacer otro pedido</button></div>';
 }
@@ -1107,7 +1179,7 @@ function itemText(it){
 }
 function waText(r){
   var s=suc(r.sucursal);
-  return '¡Hola '+r.nombre.split(' ')[0]+'! Gracias por tu compra en Mr. Cake 🎂\nTu pedido '+r.folio+' está confirmado y pagado.\n\n'+r.items.map(itemText).join('\n')+'\n\n'+waEntrega(r)+(ahorro(r)?'\nAhorraste: '+$m(ahorro(r)):'')+'\nTotal pagado: '+$m(r.total)+'\n\nMr. Cake, en tus momentos especiales.';
+  return '¡Hola '+r.nombre.split(' ')[0]+'! Gracias por tu compra en Mr. Cake 🎂\nTu pedido '+r.folio+' está confirmado y pagado.\n\n'+r.items.map(itemText).join('\n')+'\n\n'+waEntrega(r)+(ahorro(r)?'\nAhorraste: '+$m(ahorro(r)):'')+'\nTotal pagado: '+$m(r.total)+(r.metodo==='tarjeta'?' con tarjeta':'')+'\n\nMr. Cake, en tus momentos especiales.';
 }
 function waBox(r){
   var txt=waText(r),t=r.telefono,fmt=t.length===10?t.slice(0,3)+' '+t.slice(3,6)+' '+t.slice(6):t;
@@ -1161,6 +1233,7 @@ $('#tienda').addEventListener('click',function(e){
   if(b.id==='go-pay')return checkout();
   if(b.id==='x-back'){screen='tienda';renderTienda();return}
   if(b.hasAttribute('data-copy'))return copy(b.getAttribute('data-copy'));
+  if((a=b.getAttribute('data-metodo'))){var rm=res();if(rm&&rm.estado==='apartado'){rm.metodo=a;if(a==='tarjeta'&&rm.card&&rm.card.procesando)rm.card={};save();renderTienda();var tb=$('[data-metodo="'+a+'"]');if(tb)tb.focus();if(a==='tarjeta'&&PAGOS_URL)loadOpenpay().catch(function(){})}return}
   if(b.id==='op-retry'){var rr=res();if(rr){crearCargo(rr);renderTienda()}return}
   if(b.id==='op-check'){revisarPago(res(),true);return}
   if(b.id==='sim-pay'){var r=res();if(r&&r.estado==='apartado'){r.estado='pagado';r.pagado=Date.now();save()}cart=[];screen='ok';renderTienda();window.scrollTo(0,0);focusH();return}
@@ -1170,7 +1243,11 @@ $('#tienda').addEventListener('click',function(e){
   if(b.id==='back'){screen='tienda';clampCart();renderTienda();window.scrollTo(0,0);return}
 });
 function focusH(){var h=$('#pay-h');if(h)h.focus()}
+$('#tienda').addEventListener('submit',function(e){if(e.target.id==='card-form'){e.preventDefault();pagarTarjeta(res())}});
 $('#tienda').addEventListener('input',function(e){
+  if(e.target.id==='cc-num'){var v=e.target.value.replace(/\D/g,'').slice(0,19);e.target.value=v.replace(/(.{4})/g,'$1 ').trim();return}
+  if(e.target.id==='cc-exp'){var x=e.target.value.replace(/\D/g,'').slice(0,4);e.target.value=x.length>2?x.slice(0,2)+'/'+x.slice(2):x;return}
+  if(e.target.id==='cc-cvv'){e.target.value=e.target.value.replace(/\D/g,'').slice(0,4);return}
   var t=e.target,a;
   if(t.id==='c-nombre'){cliente.nombre=t.value;t.removeAttribute('aria-invalid');updateCheckout();return}
   if(t.id==='a-calle'){sel.dir.calle=t.value;t.removeAttribute('aria-invalid');updateCheckout();return}
@@ -1330,7 +1407,7 @@ setInterval(function(){
   var changed=expireTick(),now=Date.now();
   if(screen==='pago'){var r=res();
     if(r&&r.estado!=='apartado'){if(r.estado==='pagado')cart=[];screen=r.estado==='pagado'?'ok':'expirado';renderTienda();focusH()}
-    else if(r){if(PAGOS_URL&&r.op&&r.op.id&&now-lastCheck>10000){lastCheck=now;revisarPago(r)}var cd=$('#cd');if(cd)cd.textContent=mmss(r.expira-now);var tm=$('#timer');if(tm)tm.classList.toggle('low',r.expira-now<120000)}}
+    else if(r){if(PAGOS_URL&&r.metodo!=='tarjeta'&&r.op&&r.op.id&&now-lastCheck>10000){lastCheck=now;revisarPago(r)}var cd=$('#cd');if(cd)cd.textContent=mmss(r.expira-now);var tm=$('#timer');if(tm)tm.classList.toggle('low',r.expira-now<120000)}}
   else if(changed&&screen==='tienda'&&!$('#v-tienda').hidden){var g=$('#grid');if(g)g.innerHTML=gridHTML()}
   if(!$('#v-panel').hidden){
     if(changed){var l=$('#res-list');if(l)renderPanel()}
@@ -1362,6 +1439,19 @@ $$('.views button').forEach(function(b){b.addEventListener('click',function(){
     if(to==='personalizado'){catSel='personalizado';$$('.cat').forEach(function(c){c.setAttribute('aria-pressed',String(c.getAttribute('data-cat')==='personalizado'))});var g=$('#grid');if(g)g.innerHTML=gridHTML()}
     var t=$('#elige');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
   });
+})();
+(function(){
+  var q=new URLSearchParams(location.search),f=q.get('pago3ds');if(!f||!PAGOS_URL)return;
+  var id=q.get('id');try{history.replaceState(null,'',location.pathname)}catch(e){}
+  var r=null;state.reservas.forEach(function(x){if(x.folio===f)r=x});if(!r)return;
+  id=id||(r.card&&r.card.id);curRes=r.id;screen='pago';r.metodo='tarjeta';
+  if(r.estado==='pagado'){screen='ok';return}
+  if(!id){r.card={error:'No pudimos confirmar el pago con tu banco. Intenta de nuevo.'};return}
+  r.card={procesando:true};
+  fetch(pagosApi()+'/estado?id='+encodeURIComponent(id)).then(function(x){return x.json()}).then(function(j){
+    if(j.estado==='completed')pagado(r,'tarjeta',j.tarjeta);
+    else cardErr(r,'Tu banco no confirmó el pago. Intenta de nuevo, con otra tarjeta o por transferencia.');
+  }).catch(function(){cardErr(r,'No pudimos confirmar el pago. Revisa tu conexión.')});
 })();
 expireTick();renderTienda();
 })();
