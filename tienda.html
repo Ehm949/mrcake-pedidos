@@ -450,6 +450,7 @@ dialog#pd::backdrop{background:rgba(30,20,24,.55);-webkit-backdrop-filter:blur(4
 .cf-in{display:inline-flex;align-items:center;gap:6px;font-weight:600}
 .cf-in input{width:90px}
 .cf-ex{margin:12px 0 0;background:var(--mint);color:var(--mint-ink);border-radius:10px;padding:9px 12px;font-size:13.5px}
+.size .serv{display:block;font-style:normal;font-size:12px;font-weight:500;color:var(--ink-2);margin-top:1px}
 .toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translate(-50%,8px);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:999px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20;max-width:calc(100% - 32px);text-align:center;box-shadow:var(--shadow-lg)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
@@ -539,7 +540,7 @@ function $m(n){return money.format(Math.round(n||0))}
 /* Catálogo de Mr. Cake */
 var CATS=[
   {id:'vainilla',nombre:'Vainilla'},{id:'chocolate',nombre:'Chocolate'},{id:'humedos',nombre:'Húmedos'},
-  {id:'cheesecakes',nombre:'Cheesecakes'},{id:'especiales',nombre:'Especiales'},{id:'individuales',nombre:'Individuales'},{id:'secos',nombre:'Productos secos'}
+  {id:'cheesecakes',nombre:'Cheesecakes'},{id:'especiales',nombre:'Especiales'},{id:'individuales',nombre:'Individuales'},{id:'secos',nombre:'Muffins'}
 ];
 var SIZE_LABEL={m:'Mediano',g:'Grande',c:'Charolita',n:'Pieza'};
 var CATALOGO=[
@@ -578,6 +579,10 @@ var SUCURSALES=[
 ];
 function prod(id){for(var i=0;i<CATALOGO.length;i++)if(CATALOGO[i].id===id)return CATALOGO[i];return null}
 function suc(id){for(var i=0;i<SUCURSALES.length;i++)if(SUCURSALES[i].id===id)return SUCURSALES[i];return SUCURSALES[0]}
+var PERSONAS={m:'12 a 15 personas',g:'20 a 25 personas'};
+var PERSONAS_ESP={'rollo|g':'10 a 12 personas','chtortuga|g':'12 a 16 personas','chblueberry|g':'12 a 16 personas'};
+function personas(pid,size){var p=prod(pid);if(!p)return '';if(p.cat==='individuales')return '1 persona';if(p.cat==='secos')return '1 pieza';return PERSONAS_ESP[pid+'|'+size]||PERSONAS[size]||''}
+function servHTML(pid,size){var t=personas(pid,size);return t?'<em class="serv">'+t+'</em>':''}
 function isCake(p){return p&&(p.sizes.m||p.sizes.g)}
 
 function isoLocal(d){var z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)}
@@ -921,7 +926,7 @@ function gridHTML(){
     return '<article class="prod"><button class="thumb thumb-btn" data-detail="'+p.id+'" aria-label="Ver detalles e ingredientes de '+esc(p.nombre)+'">'+photoHTML(p.id,false,drawProduct(p.id,sizes[sizes.length-1],''),p.nombre)+'</button><h3>'+esc(p.nombre)+'</h3>'+(p.top?'<span class="flag">Más vendido</span>':'')+'<p>'+esc(p.desc)+'</p><button class="linkbtn more" data-detail="'+p.id+'">Ver ingredientes</button><div class="sizes">'+sizes.map(function(s){
       var left=disponible(sel.suc,sel.fecha,p.id,s)-inCart(p.id,s),out=left<=0;
       var lbl=out?'Agotado':(left<=3?'Quedan '+left:'Disponible');
-      return '<button class="size" data-add="'+p.id+'" data-size="'+s+'"'+(out?' disabled':'')+' aria-label="'+esc(p.nombre+' '+SIZE_LABEL[s].toLowerCase()+', '+$m(p.sizes[s])+', '+lbl)+'"><span>'+SIZE_LABEL[s]+'<small class="'+(left<=3&&!out?'low':'')+'">'+lbl+'</small></span><b>'+$m(p.sizes[s])+'</b></button>';
+      return '<button class="size" data-add="'+p.id+'" data-size="'+s+'"'+(out?' disabled':'')+' aria-label="'+esc(p.nombre+' '+SIZE_LABEL[s].toLowerCase()+(personas(p.id,s)?', para '+personas(p.id,s):'')+', '+$m(p.sizes[s])+', '+lbl)+'"><span>'+SIZE_LABEL[s]+servHTML(p.id,s)+'<small class="'+(left<=3&&!out?'low':'')+'">'+lbl+'</small></span><b>'+$m(p.sizes[s])+'</b></button>';
     }).join('')+'</div></article>';
   }).join('')+'</div>';
 }
@@ -939,7 +944,7 @@ function cartHTML(){
   var s=suc(sel.suc),cd=byId(CIUDADES,sel.ciudad),html='<h3 id="c-t">Tu pedido</h3><p class="sub">'+(sel.modo==='domicilio'?'Envío a domicilio en '+esc(cd.nombre)+', el ':'Recoges en Sucursal '+esc(s.nombre)+', el ')+esc(fFecha.format(dateOf(sel.fecha)))+'.</p>';
   html+='<ul class="cart">'+(cart.length?cart.map(function(it,i){
     var left=isTracked(it)?disponible(sel.suc,sel.fecha,it.pid,it.size)-inCart(it.pid,it.size):99,comp=isComp(it.pid)?byId(COMPLEMENTOS,it.pid):null;
-    var det=isCustom(it.pid)?'<small>'+esc(customDetail(it.custom).slice(0,2).join('. '))+'</small>':'<small>'+$m(priceOf(it))+' c/u</small>';
+    var det=isCustom(it.pid)?'<small>'+esc(customDetail(it.custom).slice(0,2).join('. '))+'</small>':'<small>'+$m(priceOf(it))+' c/u'+(isTracked(it)&&prod(it.pid)&&isCake(prod(it.pid))?', '+personas(it.pid,it.size):'')+'</small>';
     return '<li><div class="l1"><span class="nm"><b>'+esc(itemLabel(it))+'</b>'+det+'</span><div class="qty"><button data-dec="'+i+'" aria-label="Quitar uno de '+esc(itemLabel(it))+'">−</button><span>'+it.qty+'</span><button data-inc="'+i+'" aria-label="Agregar uno de '+esc(itemLabel(it))+'"'+(left<=0?' disabled':'')+'>+</button></div><span class="amt">'+$m(priceOf(it)*it.qty)+'</span></div>'+
       msgInputs(i,it)+(comp&&comp.det?'<input data-det="'+i+'" maxlength="60" placeholder="'+esc(comp.det)+'" value="'+esc(it.detalle||'')+'" aria-label="'+esc(comp.det)+'">':'')+'</li>'}).join(''):'<li class="empty">Todavía no agregas productos.</li>')+'</ul>';
   html+='<div class="fields"><label class="f">Tu nombre<input id="c-nombre" autocomplete="name" value="'+esc(cliente.nombre)+'"></label><label class="f">Tu WhatsApp<input id="c-tel" inputmode="tel" autocomplete="tel" placeholder="10 dígitos" value="'+esc(cliente.telefono)+'"></label></div>'+(sel.modo==='domicilio'?'<div class="fields addr"><label class="f">Calle y número<input id="a-calle" autocomplete="street-address" value="'+esc(sel.dir.calle)+'"></label><label class="f">Colonia<input id="a-col" value="'+esc(sel.dir.colonia)+'"></label><label class="f">Referencias<input id="a-ref" placeholder="Ej. casa blanca con portón negro" value="'+esc(sel.dir.ref)+'"></label><label class="f">Horario de entrega<select id="a-hor">'+HORARIOS.map(function(x){return '<option'+(sel.dir.horario===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select></label></div>':'');
@@ -1342,7 +1347,7 @@ function detailHTML(pid){
   var stage=pdView==='rebanada'&&canSlice?photoHTML(pid,true,sliceSVG(pid),'Rebanada de '+p.nombre):photoHTML(pid,false,drawProduct(pid,sizes[sizes.length-1],''),p.nombre);
   return '<div class="pd"><div class="pd-media"><div class="pd-stage">'+stage+'</div>'+(canSlice?'<div class="pd-views" role="group" aria-label="Vista"><button data-pdv="completo" aria-pressed="'+(pdView!=='rebanada')+'">Completo</button><button data-pdv="rebanada" aria-pressed="'+(pdView==='rebanada')+'">Rebanada</button></div>':'')+'</div>'+
     '<div class="pd-info"><h3 id="pd-t">'+esc(p.nombre)+'</h3>'+(p.top?'<span class="flag">Más vendido</span>':'')+'<h4>Lo que lleva</h4><ul class="ingr">'+ingredientes(p).map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>'+(p.base?'<p class="note">Porción individual del pastel '+esc(base.nombre)+'.</p>':'')+
-    '<h4>Elige tamaño</h4><div class="sizes">'+sizes.map(function(s){var left=disponible(sel.suc,sel.fecha,p.id,s)-inCart(p.id,s),out=left<=0,lbl=out?'Agotado':(left<=3?'Quedan '+left:'Disponible');return '<button class="size" data-add="'+p.id+'" data-size="'+s+'"'+(out?' disabled':'')+'><span>'+SIZE_LABEL[s]+'<small class="'+(left<=3&&!out?'low':'')+'">'+lbl+'</small></span><b>'+$m(p.sizes[s])+'</b></button>'}).join('')+'</div>'+
+    '<h4>Elige tamaño</h4><div class="sizes">'+sizes.map(function(s){var left=disponible(sel.suc,sel.fecha,p.id,s)-inCart(p.id,s),out=left<=0,lbl=out?'Agotado':(left<=3?'Quedan '+left:'Disponible');return '<button class="size" data-add="'+p.id+'" data-size="'+s+'"'+(out?' disabled':'')+'><span>'+SIZE_LABEL[s]+servHTML(p.id,s)+'<small class="'+(left<=3&&!out?'low':'')+'">'+lbl+'</small></span><b>'+$m(p.sizes[s])+'</b></button>'}).join('')+'</div>'+
     '<button class="btn btn-block" data-pdclose>Seguir viendo</button></div></div>';
 }
 function openDetail(pid){pdOpen=pid;pdView='completo';$('#pd-body').innerHTML=detailHTML(pid);var d=$('#pd');if(d.showModal)d.showModal();else d.setAttribute('open','')}
