@@ -415,6 +415,23 @@ dialog#pd::backdrop{background:rgba(30,20,24,.55);-webkit-backdrop-filter:blur(4
 .cardform label.f input{font-variant-numeric:tabular-nums;letter-spacing:.02em}
 .cc-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .secure{display:flex;gap:6px;align-items:flex-start;margin:0}
+.ph-wrap{display:block;width:100%}
+.ph-wrap img.photo{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover}
+.ph-wrap .ph-fb{display:none}
+.ph-wrap.nofoto img.photo{display:none}
+.ph-wrap.nofoto .ph-fb{display:block}
+.prod .thumb .ph-wrap img.photo{transition:transform .4s cubic-bezier(.2,.8,.2,1)}
+.prod:hover .thumb .ph-wrap img.photo{transform:scale(1.05)}
+.pd-stage img.photo{border-radius:18px;box-shadow:0 18px 30px rgba(120,20,60,.16)}
+.xthumb{overflow:hidden}
+.xthumb img.photo{border-radius:12px}
+.hero-cake img.photo{border-radius:50%;box-shadow:0 24px 44px rgba(120,20,60,.25)}
+#hero-slice img.photo{border-radius:12px}
+.d-hero{display:flex;gap:16px;align-items:center;background:var(--accent-soft);border-radius:20px;padding:12px;margin-bottom:16px}
+.d-hero .ph-wrap{width:120px;flex:none}
+.d-hero img.photo{border-radius:14px}
+.d-hero b{display:block;font-size:17px}
+.d-hero p{margin:4px 0 0;color:var(--ink-2);font-size:14px}
 .toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translate(-50%,8px);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:999px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20;max-width:calc(100% - 32px);text-align:center;box-shadow:var(--shadow-lg)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
@@ -887,7 +904,7 @@ function gridHTML(){
     return '<article class="prod"><div class="thumb ico" aria-hidden="true">'+c.ico+'</div><h3>'+esc(c.nombre)+'</h3><p>'+esc(c.why)+'</p><div class="sizes"><button class="size" data-add="'+c.id+'" data-size="u"><span>'+(n?'Agregar otro<small>Llevas '+n+'</small>':'Agregar')+'</span><b>'+$m(c.p)+'</b></button></div></article>'}).join('')+'</div>';
   return packHTML()+'<div class="grid">'+CATALOGO.filter(function(p){return p.cat===catSel}).map(function(p){
     var sizes=Object.keys(p.sizes);
-    return '<article class="prod"><button class="thumb thumb-btn" data-detail="'+p.id+'" aria-label="Ver detalles e ingredientes de '+esc(p.nombre)+'">'+drawProduct(p.id,sizes[sizes.length-1],'')+'</button><h3>'+esc(p.nombre)+'</h3>'+(p.top?'<span class="flag">Más vendido</span>':'')+'<p>'+esc(p.desc)+'</p><button class="linkbtn more" data-detail="'+p.id+'">Ver ingredientes</button><div class="sizes">'+sizes.map(function(s){
+    return '<article class="prod"><button class="thumb thumb-btn" data-detail="'+p.id+'" aria-label="Ver detalles e ingredientes de '+esc(p.nombre)+'">'+photoHTML(p.id,false,drawProduct(p.id,sizes[sizes.length-1],''),p.nombre)+'</button><h3>'+esc(p.nombre)+'</h3>'+(p.top?'<span class="flag">Más vendido</span>':'')+'<p>'+esc(p.desc)+'</p><button class="linkbtn more" data-detail="'+p.id+'">Ver ingredientes</button><div class="sizes">'+sizes.map(function(s){
       var left=disponible(sel.suc,sel.fecha,p.id,s)-inCart(p.id,s),out=left<=0;
       var lbl=out?'Agotado':(left<=3?'Quedan '+left:'Disponible');
       return '<button class="size" data-add="'+p.id+'" data-size="'+s+'"'+(out?' disabled':'')+' aria-label="'+esc(p.nombre+' '+SIZE_LABEL[s].toLowerCase()+', '+$m(p.sizes[s])+', '+lbl)+'"><span>'+SIZE_LABEL[s]+'<small class="'+(left<=3&&!out?'low':'')+'">'+lbl+'</small></span><b>'+$m(p.sizes[s])+'</b></button>';
@@ -997,7 +1014,7 @@ function suggest(guests){
 function designerHTML(){
   var d=design,r=customCalc(d),lead=customLeadDate(),tooSoon=sel.fecha<lead;
   var left=disponible(sel.suc,sel.fecha,'custom','x')-inCart('custom','x');
-  var h='<div class="designer"><div class="d-prev"><div class="d-stage" id="d-stage">'+cakeSVG(d)+'</div><div class="d-sum"><p class="d-serv">Alcanza para unas <b>'+r.serv+'</b> personas</p><ul class="d-lines">'+r.lines.map(function(x){return '<li><span>'+esc(x.l)+'</span><span>'+$m(x.m)+'</span></li>'}).join('')+'</ul><div class="total"><span>Precio por pastel</span><span class="big">'+$m(r.total)+'</span></div></div></div>';
+  var h='<div class="d-hero"><span class="ph-wrap"><img class="photo" src="'+IMG+'personalizado.jpg" alt="Ejemplo de pastel personalizado de dos pisos" loading="lazy" onerror="this.parentNode.parentNode.style.display=\'none\'"></span><div><b>Diseña el pastel de tu festejo</b><p>Elige forma, pisos, sabores y decoración. Te mostramos cómo queda y cuánto cuesta al momento.</p></div></div><div class="designer"><div class="d-prev"><div class="d-stage" id="d-stage">'+cakeSVG(d)+'</div><div class="d-sum"><p class="d-serv">Alcanza para unas <b>'+r.serv+'</b> personas</p><ul class="d-lines">'+r.lines.map(function(x){return '<li><span>'+esc(x.l)+'</span><span>'+$m(x.m)+'</span></li>'}).join('')+'</ul><div class="total"><span>Precio por pastel</span><span class="big">'+$m(r.total)+'</span></div></div></div>';
   h+='<div class="d-opts">';
   if(tooSoon)h+='<div class="warn">Los pasteles personalizados se piden con al menos '+state.cfg.customLead+' días de anticipación. <button class="linkbtn" data-golead="'+lead+'">Cambiar al '+esc(fFecha.format(dateOf(lead)))+'</button></div>';
   else if(left<=0)h+='<div class="warn">Ya no hay espacio para más pasteles personalizados en esta sucursal ese día. Prueba otro día.</div>';
@@ -1034,7 +1051,7 @@ function extrasHTML(){
   h+=extrasList.map(function(x){
     var comp=isComp(x.pid)?byId(COMPLEMENTOS,x.pid):null,p=comp?null:prod(x.pid),n=inCart(x.pid,x.size),i=-1;
     cart.forEach(function(it,k){if(it.pid===x.pid&&it.size===x.size)i=k});
-    var thumb=comp?'<div class="xthumb ico" aria-hidden="true">'+comp.ico+'</div>':'<div class="xthumb">'+drawProduct(p.id,x.size,'')+'</div>';
+    var thumb=comp?'<div class="xthumb ico" aria-hidden="true">'+comp.ico+'</div>':'<div class="xthumb">'+photoHTML(p.id,false,drawProduct(p.id,x.size,''),p.nombre)+'</div>';
     var name=comp?comp.nombre:itemLabel({pid:x.pid,size:x.size}),why=comp?comp.why:x.why,pr=comp?comp.p:price(x.pid,x.size);
     var ctrl=n?'<div class="qty"><button data-xdec="'+i+'" aria-label="Quitar uno">−</button><span>'+n+'</span><button data-xinc="'+i+'" aria-label="Agregar uno">+</button></div>':'<button class="btn btn-sm btn-primary" data-xadd="'+x.pid+'|'+x.size+'">Agregar</button>';
     return '<article class="xcard'+(n?' on':'')+'">'+thumb+'<div class="xbody"><b>'+esc(name)+'</b><small>'+esc(why)+'</small><div class="xfoot"><span>'+$m(pr)+'</span>'+ctrl+'</div>'+(n&&comp&&comp.det?'<input data-det="'+i+'" maxlength="60" placeholder="'+esc(comp.det)+'" value="'+esc(cart[i].detalle||'')+'" aria-label="'+esc(comp.det)+'">':'')+'</div></article>';
@@ -1300,11 +1317,15 @@ function sliceSVG(pid){
   else [[0.3,0.25],[0.55,0.3],[0.45,0.6],[0.7,0.15]].forEach(function(t){svg.push(topping(L.top,x0+(x1-x0)*t[0]+(ax+20-x0-(x1-x0)*t[0])*t[1],yT-dy*t[1]-3))});
   return '<svg viewBox="0 0 320 250" role="img" aria-label="Rebanada de '+esc(p.nombre)+'">'+svg.join('')+'</svg>';
 }
+/* Fotos reales: carpeta img/ junto a tienda.html. Si una foto falta, se muestra el dibujo. */
+var IMG='img/';
+function photoName(pid,slice){var p=prod(pid);if(!p)return null;if(p.cat==='secos')return pid;if(p.base)return p.base+'-rebanada';return pid+(slice?'-rebanada':'')}
+function photoHTML(pid,slice,fallback,alt){var n=photoName(pid,slice);if(!n)return fallback||'';return '<span class="ph-wrap"><img class="photo" src="'+IMG+n+'.jpg" alt="'+esc(alt||'')+'" loading="lazy" decoding="async" onerror="this.parentNode.classList.add(\'nofoto\')"><span class="ph-fb">'+(fallback||'')+'</span></span>'}
 function ingredientes(p){var base=p.base?prod(p.base):p,t=(base.desc||'').replace(/\.$/,'');return t.split(/,\s*|\s+con\s+|\s+y\s+/).map(function(x){x=x.trim();return x.charAt(0).toUpperCase()+x.slice(1)}).filter(Boolean)}
 var pdOpen=null,pdView='completo';
 function detailHTML(pid){
-  var p=prod(pid),sizes=Object.keys(p.sizes),base=p.base?prod(p.base):p,canSlice=!!SLICE[p.base||pid];
-  var stage=pdView==='rebanada'&&canSlice?sliceSVG(pid):drawProduct(pid,sizes[sizes.length-1],'');
+  var p=prod(pid),sizes=Object.keys(p.sizes),base=p.base?prod(p.base):p,canSlice=!p.base&&p.cat!=='secos';
+  var stage=pdView==='rebanada'&&canSlice?photoHTML(pid,true,sliceSVG(pid),'Rebanada de '+p.nombre):photoHTML(pid,false,drawProduct(pid,sizes[sizes.length-1],''),p.nombre);
   return '<div class="pd"><div class="pd-media"><div class="pd-stage">'+stage+'</div>'+(canSlice?'<div class="pd-views" role="group" aria-label="Vista"><button data-pdv="completo" aria-pressed="'+(pdView!=='rebanada')+'">Completo</button><button data-pdv="rebanada" aria-pressed="'+(pdView==='rebanada')+'">Rebanada</button></div>':'')+'</div>'+
     '<div class="pd-info"><h3 id="pd-t">'+esc(p.nombre)+'</h3>'+(p.top?'<span class="flag">Más vendido</span>':'')+'<h4>Lo que lleva</h4><ul class="ingr">'+ingredientes(p).map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>'+(p.base?'<p class="note">Porción individual del pastel '+esc(base.nombre)+'.</p>':'')+
     '<h4>Elige tamaño</h4><div class="sizes">'+sizes.map(function(s){var left=disponible(sel.suc,sel.fecha,p.id,s)-inCart(p.id,s),out=left<=0,lbl=out?'Agotado':(left<=3?'Quedan '+left:'Disponible');return '<button class="size" data-add="'+p.id+'" data-size="'+s+'"'+(out?' disabled':'')+'><span>'+SIZE_LABEL[s]+'<small class="'+(left<=3&&!out?'low':'')+'">'+lbl+'</small></span><b>'+$m(p.sizes[s])+'</b></button>'}).join('')+'</div>'+
@@ -1427,8 +1448,8 @@ $$('.views button').forEach(function(b){b.addEventListener('click',function(){
 
 /* Portada */
 (function(){
-  var hc=$('#hero-cake');if(hc)hc.innerHTML=drawProduct('tortuga','g','');
-  var hs=$('#hero-slice');if(hs)hs.innerHTML=sliceSVG('nutella');
+  var hc=$('#hero-cake');if(hc)hc.innerHTML=photoHTML('tortuga',false,drawProduct('tortuga','g',''),'Pastel Tortuga');
+  var hs=$('#hero-slice');if(hs)hs.innerHTML=photoHTML('nutella',true,sliceSVG('nutella'),'Rebanada de Nutella');
   var hp=$('#hero-price');if(hp)hp.textContent='El más pedido · desde '+$m(prod('tortuga').sizes.m);
   var names=CATALOGO.filter(function(p){return isCake(p)}).map(function(p){return '<span>'+esc(p.nombre)+'</span>'}).join('');
   var mq=$('#marquee');if(mq)mq.innerHTML=names+names;
