@@ -1014,9 +1014,9 @@ function lotes0(s){
   if(!s)return [];
   if(DB.on){
     if(!DB.vit[s]){if(!DB.vitL[s]){DB.vitL[s]=1;dbLoad(s,hoyISO()).then(function(){DB.vitL[s]=0;if(!DB.vit[s])DB.vit[s]=[];dbRefreshViews()},function(){DB.vitL[s]=0;if(!DB.vit[s])DB.vit[s]=[]})}return []}
-    return DB.vit[s].map(function(l){return {id:String(l.id),pid:l.pid,size:l.size,horneado:l.horneado,qty:+l.qty||0,vendidos:+l.vendidos||0,caduca:l.caduca||'',pctx:l.pctx==null?null:+l.pctx,origen:l.origen||''}});
+    return DB.vit[s].map(function(l){return {suc:s,id:String(l.id),pid:l.pid,size:l.size,horneado:l.horneado,qty:+l.qty||0,vendidos:+l.vendidos||0,caduca:l.caduca||'',pctx:l.pctx==null?null:+l.pctx,origen:l.origen||''}});
   }
-  return (state.vitrina[s]||[]).map(function(l){return {id:l.id,pid:l.pid,size:l.size,horneado:l.horneado,qty:l.qty,vendidos:lotesVendidos(l.id),caduca:l.caduca||'',pctx:l.pctx==null?null:l.pctx,origen:l.origen||''}});
+  return (state.vitrina[s]||[]).map(function(l){return {suc:s,id:l.id,pid:l.pid,size:l.size,horneado:l.horneado,qty:l.qty,vendidos:lotesVendidos(l.id),caduca:l.caduca||'',pctx:l.pctx==null?null:l.pctx,origen:l.origen||''}});
 }
 /* Lotes con fecha de caducidad (del Excel de la sucursal): el descuento depende de cuántos días faltan para que caduque.
    Si la sucursal puso un % en el Excel, se respeta ese. 100% en el Excel = no se vende. */
@@ -1029,7 +1029,8 @@ function porCaducidad(l){
   return {edad:0,dias:d,pct:Math.min(90,pct),retirar:d<0,txt:cadTxt(d,l.caduca)};
 }
 function loteInfo(l){var f=l.caduca?porCaducidad(l):frescura(l.pid,l.horneado);if(!f.txt)f.txt=edadTxt(f.edad);
-  return {id:l.id,pid:l.pid,size:l.size,horneado:l.horneado,caduca:l.caduca||'',pctx:l.pctx,origen:l.origen||'',qty:l.qty,vendidos:l.vendidos,edad:f.edad,dias:f.dias,txt:f.txt,pct:f.pct,retirar:f.retirar,disp:Math.max(0,l.qty-l.vendidos)}}
+  var fo=!f.retirar&&l.suc?ofVit(l.pid,l.size,l.suc,0,l.caduca):null;if(fo&&fo.pct>f.pct){f.pct=fo.pct}else fo=null;
+  return {flash:fo,suc:l.suc,id:l.id,pid:l.pid,size:l.size,horneado:l.horneado,caduca:l.caduca||'',pctx:l.pctx,origen:l.origen||'',qty:l.qty,vendidos:l.vendidos,edad:f.edad,dias:f.dias,txt:f.txt,pct:f.pct,retirar:f.retirar,disp:Math.max(0,l.qty-l.vendidos)}}
 function vitrinaVenta(s){return lotes(s).map(loteInfo).filter(function(l){var p=prod(l.pid);return p&&p.sizes[l.size]&&!l.retirar&&l.disp>0}).sort(function(a,b){return b.pct-a.pct||(a.dias==null?99:a.dias)-(b.dias==null?99:b.dias)||b.edad-a.edad})}
 function loteById(s,id){var L=lotes(s);for(var i=0;i<L.length;i++)if(L[i].id===String(id))return loteInfo(L[i]);return null}
 function lotePrecio(l,s){return Math.round(price(l.pid,l.size,s)*(1-l.pct/100))}
@@ -1048,12 +1049,15 @@ function ofEstado(o,now){now=now||Date.now();if(o.off||now>=o.fin)return 'fin';i
 function ofRest(o){return o.unidades>0?Math.max(0,o.unidades-ofVendidos(o.id)-inCartOf(o.id)):999}
 function ofPuede(o){return ofEstado(o)==='activa'&&ofRest(o)>0&&(!o.max||inCartOf(o.id)<o.max)}
 function ofSucOk(o){return !o.suc||!sel.suc||o.suc===sel.suc}
-function ofertaPara(pid,size){if(sel.vitrina||isComp(pid)||isCustom(pid))return null;var best=null,now=Date.now();(state.cfg.ofertas||[]).forEach(function(o){if(ofEstado(o,now)==='activa'&&ofSucOk(o)&&ofMatch(o,pid,size)&&(!best||o.pct>best.pct))best=o});return best}
+function ofertaPara(pid,size){if(sel.vitrina||isComp(pid)||isCustom(pid))return null;var best=null,now=Date.now();(state.cfg.ofertas||[]).forEach(function(o){if(!o.vit&&ofEstado(o,now)==='activa'&&ofSucOk(o)&&ofMatch(o,pid,size)&&(!best||o.pct>best.pct))best=o});return best}
 var OF_CAT={humedos:'Todos los pasteles húmedos',betun:'Todos los pasteles de betún',cheesecakes:'Todos los cheesecakes',individuales:'Todas las charolas y rebanadas',secos:'Toda la panadería',postres:'Todos los postres',temporada:'Todo lo de temporada'};
 function ofNombre(o){if(isCatOf(o))return OF_CAT[o.pid.slice(4)]||'Varios productos';var p=prod(o.pid);return p?p.nombre+(o.size&&isCake(p)?' '+SIZE_LABEL[o.size].toLowerCase():''):''}
 function ofMuestra(o){var p=isCatOf(o)?CATALOGO.filter(function(x){return x.cat===o.pid.slice(4)})[0]:prod(o.pid);if(!p)return null;var sz=o.size||Object.keys(p.sizes)[0],b=price(p.id,sz);return {p:p,size:sz,base:b,precio:Math.round(b*(1-o.pct/100))}}
 function hms(ms){ms=Math.max(0,ms);var t=Math.floor(ms/1000),h=Math.floor(t/3600);return pad(h,2)+':'+pad(Math.floor(t%3600/60),2)+':'+pad(t%60,2)}
-function ofertasVisibles(){var now=Date.now();return (state.cfg.ofertas||[]).filter(function(o){var e=ofEstado(o,now);return ofMuestra(o)&&(e==='activa'||e==='agotada'||(e==='prox'&&o.inicio-now<86400000))&&(!o.suc||!sel.suc||o.suc===sel.suc)}).sort(function(a,b){var ea=ofEstado(a,now)==='activa'?0:1,eb=ofEstado(b,now)==='activa'?0:1;return ea-eb||a.fin-b.fin})}
+/* Oferta automática de vitrina: aplica a las piezas de la vitrina de su sucursal (no se suma con el descuento por caducidad: se usa el mayor) */
+function ofVit(pid,size,s,now,cad){var best=null;now=now||Date.now();(state.cfg.ofertas||[]).forEach(function(o){if(o.vit&&o.suc===s&&o.pid===pid&&(!o.size||o.size===size)&&(!o.hasta||!cad||cad<=o.hasta)&&ofEstado(o,now)==='activa'&&(!best||o.pct>best.pct))best=o});return best}
+function ofVitPiezas(o){var n=0;lotes(o.suc).map(loteInfo).forEach(function(l){if(l.flash&&l.flash.id===o.id)n+=l.disp});return n}
+function ofertasVisibles(){var now=Date.now();return (state.cfg.ofertas||[]).filter(function(o){var e=ofEstado(o,now);if(o.vit){if(sel.suc&&o.suc!==sel.suc)return false;if(e==='activa'&&!ofVitPiezas(o))return false}else if(sel.vitrina&&wz===3)return false;return ofMuestra(o)&&(e==='activa'||e==='agotada'||(e==='prox'&&o.inicio-now<86400000))&&(!o.suc||!sel.suc||o.suc===sel.suc)}).sort(function(a,b){var ea=ofEstado(a,now)==='activa'?0:1,eb=ofEstado(b,now)==='activa'?0:1;return ea-eb||a.fin-b.fin})}
 function ofSig(){var now=Date.now();return (state.cfg.ofertas||[]).map(function(o){return o.id+':'+ofEstado(o,now)}).join(',')}
 function key(s,f,pid,size){return s+'|'+f+'|'+pid+'|'+size}
 function defaultCupo(pid,size){
@@ -1078,7 +1082,7 @@ function dbJSON(path,opt){opt=opt||{};var h={'Content-Type':'application/json'};
 function snapKey(s,f){return s+'|'+f}
 function snapOf(s,f){if(!DB.on)return null;var k=snapKey(s,f);if(!DB.snap[k]){ensureSnap(s,f);return {cupos:{},usados:{},pend:true}}return DB.snap[k]}
 function editingIn(el){var a=document.activeElement;return !!(el&&a&&el.contains(a)&&/INPUT|SELECT|TEXTAREA/.test(a.tagName))}
-function applyCfg(c){if(!c)return;if(c.caducidad&&c.caducidad.t)state.cfg.caducidad=c.caducidad;if(c.catalogo&&typeof c.catalogo==='object'){state.cfg.catalogo=c.catalogo;applyCatalogo()}if(c.frescura&&c.frescura.grupos)state.cfg.frescura=c.frescura;if(Array.isArray(c.ofertas))state.cfg.ofertas=c.ofertas;['minLead','sugLead','payMin','customLead','hoyHasta'].forEach(function(k){if(c[k]!=null)state.cfg[k]=c[k]});['barra','envio'].forEach(function(k){if(c[k])state.cfg[k]=Object.assign({},state.cfg[k],c[k])});if(Array.isArray(c.paquete))state.cfg.paquete=c.paquete;save()}
+function applyCfg(c){if(!c)return;if(c.autoflash)state.cfg.autoflash=c.autoflash;if(c.caducidad&&c.caducidad.t)state.cfg.caducidad=c.caducidad;if(c.catalogo&&typeof c.catalogo==='object'){state.cfg.catalogo=c.catalogo;applyCatalogo()}if(c.frescura&&c.frescura.grupos)state.cfg.frescura=c.frescura;if(Array.isArray(c.ofertas))state.cfg.ofertas=c.ofertas;['minLead','sugLead','payMin','customLead','hoyHasta'].forEach(function(k){if(c[k]!=null)state.cfg[k]=c[k]});['barra','envio'].forEach(function(k){if(c[k])state.cfg[k]=Object.assign({},state.cfg[k],c[k])});if(Array.isArray(c.paquete))state.cfg.paquete=c.paquete;save()}
 function setSnap(s,f,j){DB.snap[snapKey(s,f)]={cupos:j.cupos||{},usados:j.usados||{},t:Date.now()};if(Array.isArray(j.vitrina)){DB.vit[s]=j.vitrina;DB.vitT=Date.now()}if(j.precios)DB.precios[s]=j.precios;if(j.ofertas)DB.ofSold=j.ofertas;if(j.config)applyCfg(j.config)}
 function dbLoad(s,f){var k=snapKey(s,f);DB.loading[k]=true;
   return dbJSON('/tienda/estado?sucursal='+encodeURIComponent(s)+'&fecha='+encodeURIComponent(f)).then(function(j){DB.loading[k]=false;setSnap(s,f,j);DB.lastSync=Date.now();return j},function(e){DB.loading[k]=false;throw e})}
@@ -1163,7 +1167,7 @@ function isTracked(it){return !isComp(it.pid)}
 function wantsMsg(it){if(isCustom(it.pid))return true;var p=prod(it.pid);return isCake(p)&&!p.noMsg}
 function basePrice(it){if(isCustom(it.pid))return customCalc(it.custom).total;if(isComp(it.pid)){var c=byId(COMPLEMENTOS,it.pid);return c?c.p:0}return price(it.pid,it.size)}
 function priceOf(it){var b=basePrice(it);return it.pct?Math.round(b*(1-it.pct/100)):b}
-function discTxt(it){if(!it.pct)return '';if(it.lote)return 'De vitrina, '+String(it.vtxt||edadTxt(it.edad||0)).toLowerCase()+' (−'+it.pct+'%)';if(it.of)return 'Oferta relámpago (−'+it.pct+'%)';return 'Descuento −'+it.pct+'%'}
+function discTxt(it){if(!it.pct)return '';if(it.lote)return (it.fl?'Oferta relámpago de vitrina, ':'De vitrina, ')+String(it.vtxt||edadTxt(it.edad||0)).toLowerCase()+' (−'+it.pct+'%)';if(it.of)return 'Oferta relámpago (−'+it.pct+'%)';return 'Descuento −'+it.pct+'%'}
 function itemLabel(it){if(isCustom(it.pid))return customLabel(it.custom);if(isComp(it.pid)){var c=byId(COMPLEMENTOS,it.pid);return c?c.nombre:''}var p=prod(it.pid);return p?p.nombre+(isCake(p)?' '+SIZE_LABEL[it.size].toLowerCase():''):''}
 function itemLines(it){
   var h='<li>'+it.qty+' '+esc(itemLabel(it));
@@ -1234,7 +1238,7 @@ function mergeLines(){
 function clampCart(){
   var cut=false,soloVit=false,ofEnd=false,used={},vit=!!sel.vitrina;
   cart=cart.filter(function(it){
-    if(it.lote){var l=vit?loteById(sel.suc,it.lote):null;if(!l||l.retirar||l.disp<=0){cut=true;return false}it.pct=l.pct;it.edad=l.edad;it.vtxt=l.txt;if(it.qty>l.disp){it.qty=l.disp;cut=true}syncMsgs(it);return true}
+    if(it.lote){var l=vit?loteById(sel.suc,it.lote):null;if(!l||l.retirar||l.disp<=0){cut=true;return false}it.pct=l.pct;it.edad=l.edad;it.vtxt=l.txt;it.fl=l.flash?1:0;if(it.qty>l.disp){it.qty=l.disp;cut=true}syncMsgs(it);return true}
     if(vit&&isTracked(it)){soloVit=true;return false}
     return true;
   });
@@ -1279,7 +1283,7 @@ function wzHead(){
 function wizardHTML(){
   var hd=wzHead(),body=wz===1?stepSuc():wz===2?stepEnt():wz===3?stepProd():wz===4?stepDatos():stepExtras();
   var next=wz===5?'Apartar y pagar '+$m(cartTotal()):'Siguiente';
-  return '<div class="wz">'+(wz<=2||(wz===3&&!sel.vitrina)?flashHTML():'<div id="flash"></div>')+stepsHTML(wz)+
+  return '<div class="wz">'+(wz<=3?flashHTML():'<div id="flash"></div>')+stepsHTML(wz)+
     '<section class="wz-win'+(wzAnim?' anim'+(wzDir<0?' back':''):'')+'" aria-labelledby="wz-h"><div class="wz-body"><header class="wz-head"><p class="kicker">PASO '+wz+' DE 6</p><h2 id="wz-h" tabindex="-1">'+esc(hd[0])+'</h2>'+(hd[1]?'<p class="sub2">'+esc(hd[1])+'</p>':'')+'</header><div id="wz-c">'+body+'</div></div>'+
     '<div class="wz-nav">'+(wz>1?'<button class="btn" id="wz-back">Atrás</button>':'')+'<div class="wz-sum" id="wz-sum" aria-live="polite">'+navSum()+'</div><button class="btn btn-primary" id="wz-next">'+next+'</button></div></section></div>';
 }
@@ -1309,7 +1313,7 @@ function refreshWizard(){
   else if(wz===3)put($('#grid'),gridHTML());
   else if(wz===4)put($('#carrito'),cartHTML());
   else if(wz===5)put($('#wz-c'),stepExtras());
-  var fl=$('#flash');if(fl&&(wz<=2||(wz===3&&!sel.vitrina))){var fh=flashHTML(),fk=fh.replace(/\d\d:\d\d:\d\d/g,'--');if(fl.__h!==fk){fl.outerHTML=fh;fl=$('#flash');if(fl)fl.__h=fk}}
+  var fl=$('#flash');if(fl&&wz<=3){var fh=flashHTML(),fk=fh.replace(/\d\d:\d\d:\d\d/g,'--');if(fl.__h!==fk){fl.outerHTML=fh;fl=$('#flash');if(fl)fl.__h=fk}}
   updateCartbar();
 }
 /* Paso 1: sucursal */
@@ -1377,7 +1381,7 @@ function vitrinaGrid(){
   var L=vitrinaVenta(sel.suc);
   if(!L.length)return '<p class="empty">Ya no quedan piezas en la vitrina de esta sucursal por hoy. Regresa al paso 2 y elige otro día para pedirlo recién horneado.</p>';
   return '<div class="grid">'+L.map(function(l){var p=prod(l.pid),isC=isCake(p),nm=p.nombre+(isC?' '+SIZE_LABEL[l.size].toLowerCase():'');
-    return '<article class="prod">'+(l.pct?'<span class="disc-tag">−'+l.pct+'%</span>':'<span class="flag">'+(l.caduca?'Listo para llevar':'Recién horneado')+'</span>')+'<button class="thumb thumb-btn" data-detail="'+p.id+'" aria-label="Ver ingredientes de '+esc(p.nombre)+'">'+photoHTML(p.id,false,drawProduct(p.id,isC?l.size:Object.keys(p.sizes)[0],''),p.nombre)+'</button><h3>'+esc(nm)+'</h3><p class="vt-age">'+esc(l.txt)+'</p><div class="sizes">'+loteBtn(l,false)+'</div></article>';
+    return '<article class="prod">'+(l.flash?'<span class="flag fl-flag">'+BOLT+'Relámpago · <span data-cdto="'+l.flash.fin+'">'+hms(l.flash.fin-Date.now())+'</span></span>':'')+(l.pct?'<span class="disc-tag">−'+l.pct+'%</span>':(l.flash?'':'<span class="flag">'+(l.caduca?'Listo para llevar':'Recién horneado')+'</span>'))+'<button class="thumb thumb-btn" data-detail="'+p.id+'" aria-label="Ver ingredientes de '+esc(p.nombre)+'">'+photoHTML(p.id,false,drawProduct(p.id,isC?l.size:Object.keys(p.sizes)[0],''),p.nombre)+'</button><h3>'+esc(nm)+'</h3><p class="vt-age">'+esc(l.txt)+'</p><div class="sizes">'+loteBtn(l,false)+'</div></article>';
   }).join('')+'</div>';
 }
 /* Ofertas relámpago arriba de la tienda */
@@ -1386,7 +1390,8 @@ function flashHTML(){
   if(!L.length)return '<div id="flash"></div>';
   return '<div id="flash" class="flash" role="region" aria-label="Ofertas relámpago">'+L.slice(0,3).map(function(o){
     var e=ofEstado(o,now),soon=e==='prox',m=ofMuestra(o),sold=ofVendidos(o.id),tot=+o.unidades||0,to=soon?o.inicio:o.fin;
-    return '<article class="fl-card'+(soon?' soon':'')+'"><div class="fl-img" aria-hidden="true">'+photoHTML(m.p.id,false,drawProduct(m.p.id,isCake(m.p)?m.size:Object.keys(m.p.sizes)[0],''),'')+'</div><div class="fl-main"><span class="flash-tag">'+BOLT+(soon?'Próxima oferta relámpago':(e==='agotada'?'Oferta agotada':'Oferta relámpago'))+'</span><b>'+esc(ofNombre(o))+(o.suc?' · solo en Sucursal '+esc(suc(o.suc).nombre):'')+'</b><span class="fl-pr">'+(isCatOf(o)?'−'+o.pct+'% en todos':'<s>'+$m(m.base)+'</s>'+$m(m.precio))+'</span>'+
+    if(o.vit){var pzV=ofVitPiezas(o);m={p:m.p,size:m.size,base:price(o.pid,o.size||m.size,o.suc),precio:0};m.precio=Math.round(m.base*(1-o.pct/100));tot=0}
+    return '<article class="fl-card'+(soon?' soon':'')+'"><div class="fl-img" aria-hidden="true">'+photoHTML(m.p.id,false,drawProduct(m.p.id,isCake(m.p)?m.size:Object.keys(m.p.sizes)[0],''),'')+'</div><div class="fl-main"><span class="flash-tag">'+BOLT+(soon?'Próxima oferta relámpago':(e==='agotada'?'Oferta agotada':'Oferta relámpago'))+'</span><b>'+esc(ofNombre(o))+(o.suc?' · '+(o.vit?'vitrina de ':'solo en ')+'Sucursal '+esc(suc(o.suc).nombre):'')+'</b>'+(o.vit&&!soon?'<small>'+pzV+(pzV===1?' pieza lista para llevar hoy':' piezas listas para llevar hoy')+(o.max?' · máximo '+o.max+' por pedido':'')+'</small>':'')+'<span class="fl-pr">'+(isCatOf(o)?'−'+o.pct+'% en todos':'<s>'+$m(m.base)+'</s>'+$m(m.precio))+'</span>'+
       (tot&&!soon?'<div class="fl-bar" role="progressbar" aria-label="Piezas vendidas de la oferta" aria-valuemin="0" aria-valuemax="'+tot+'" aria-valuenow="'+Math.min(sold,tot)+'"><i style="width:'+Math.min(100,sold/tot*100)+'%"></i></div><small>'+(e==='agotada'?'Se vendieron las '+tot+' piezas':'Quedan '+Math.max(0,tot-sold)+' de '+tot+' piezas'+(o.max?' · máximo '+o.max+' por pedido':''))+'</small>':(soon?'<small>'+(tot?tot+' piezas en oferta':'Piezas limitadas')+'</small>':''))+'</div>'+
       '<div class="fl-cd"><small>'+(soon?'Empieza en':'Termina en')+'</small><b data-cdto="'+to+'">'+hms(to-now)+'</b></div>'+(e==='activa'?'<button class="btn btn-sm" data-flgo="'+o.id+'">Lo quiero</button>':'')+'</article>';
   }).join('')+'</div>';
@@ -1413,7 +1418,7 @@ function msgInputs(i,it){
 /* ¿Se puede agregar uno más a este renglón? Revisa cupo, vitrina y oferta */
 function canInc(it){
   if(!it||!isTracked(it))return true;
-  if(it.lote){var l=loteById(sel.suc,it.lote);return !!l&&l.disp-inLote(it.lote)>0}
+  if(it.lote){var l=loteById(sel.suc,it.lote);return !!l&&l.disp-inLote(it.lote)>0&&flTope(l)}
   if(disponible(sel.suc,sel.fecha,it.pid,it.size)-inCart(it.pid,it.size)<=0)return false;
   if(it.of){var o=ofById(it.of);return !!o&&ofPuede(o)}
   return true;
@@ -1431,7 +1436,7 @@ function cartHTML(){
   h+=barHTML(T)+sumHTML(T)+'<div class="total"><span>Total</span><span class="big">'+$m(T.total)+'</span></div><p class="note">Pagas completo con transferencia o tarjeta. Al apartar, tus pasteles quedan reservados '+state.cfg.payMin+' minutos mientras pagas.</p></div></div>';
   return h;
 }
-function refreshShop(){var g=$('#grid');if(g)g.innerHTML=gridHTML();var c=$('#carrito');if(c)c.innerHTML=cartHTML();var fl=$('#flash');if(fl&&screen==='tienda'&&(wz<=2||(wz===3&&!sel.vitrina)))fl.outerHTML=flashHTML();updateCartbar()}
+function refreshShop(){var g=$('#grid');if(g)g.innerHTML=gridHTML();var c=$('#carrito');if(c)c.innerHTML=cartHTML();var fl=$('#flash');if(fl&&screen==='tienda'&&wz<=3)fl.outerHTML=flashHTML();updateCartbar()}
 function updateCheckout(){updateCartbar()}
 function updateCartbar(){
   var w=$('#wz-sum');if(w&&screen==='tienda')w.innerHTML=navSum();
@@ -1715,12 +1720,15 @@ function addItem(pid,size){
   if(f){f.qty++;syncMsgs(f)}else{var it={pid:pid,size:size,qty:1,mensajes:[''],detalle:'',pct:useOf?o.pct:0};if(ofid)it.of=ofid;cart.push(it)}
   return true;
 }
+/* Máximo por pedido de una oferta relámpago de vitrina (suma todos los lotes del mismo pastel) */
+function flTope(l){if(!l.flash||!(+l.flash.max>0))return true;var n=0;cart.forEach(function(it){if(it.lote&&it.pid===l.pid&&it.size===l.size)n+=it.qty});return n<+l.flash.max}
 function addLote(id){
   var l=loteById(sel.suc,id);
   if(!l||l.retirar){toast('Ese pastel ya no está en la vitrina');return false}
   if(l.disp-inLote(l.id)<=0){toast('Ya tienes en tu pedido todas las piezas de ese');return false}
+  if(!flTope(l)){toast('Máximo '+l.flash.max+' por pedido en esta oferta relámpago');return false}
   var f=cart.filter(function(it){return it.lote===l.id})[0];
-  if(f){f.qty++;syncMsgs(f)}else cart.push({pid:l.pid,size:l.size,qty:1,mensajes:[''],detalle:'',lote:l.id,pct:l.pct,edad:l.edad,vtxt:l.txt,horneado:l.horneado,caduca:l.caduca});
+  if(f){f.qty++;syncMsgs(f)}else cart.push({pid:l.pid,size:l.size,qty:1,mensajes:[''],detalle:'',lote:l.id,pct:l.pct,edad:l.edad,vtxt:l.txt,fl:l.flash?1:0,horneado:l.horneado,caduca:l.caduca});
   return true;
 }
 $('#tienda').addEventListener('click',function(e){
@@ -1735,6 +1743,8 @@ $('#tienda').addEventListener('click',function(e){
   if(b.hasAttribute('data-fecha')){sel.vitrina=false;sel.fecha=b.getAttribute('data-fecha');fixCat();clampCart();renderTienda();var d=$('[data-fecha="'+sel.fecha+'"]');if(d)d.focus();return}
   if((a=b.getAttribute('data-modo'))){sel.modo=a;clampCart();renderTienda();var mo=$('[data-modo="'+a+'"]');if(mo)mo.focus();return}
   if((a=b.getAttribute('data-flgo'))){var o=ofById(a);if(!o)return;
+    if(o.vit){sel.suc=o.suc;sel.ciudad=ciudadDe(o.suc).id;sel.vitrina=true;sel.fecha=hoyISO();catSel='vitrina';clampCart();if(sel.modo==='domicilio'&&missingAt(2).length){wzGo(2);showMissing(missingAt(2),2);return}
+      wzGo(3);var tv=null;$$('#grid .prod').forEach(function(x){if(!tv&&x.querySelector('.fl-flag')&&x.querySelector('[data-lote]'))tv=x.querySelector('[data-lote]')});if(tv){tv.scrollIntoView({block:'center',behavior:'smooth'});try{tv.focus({preventScroll:true})}catch(x){}}return}
     if(!sel.suc){toast('Primero elige tu sucursal');if(wz!==1)wzGo(1);var c1=$('.sc');if(c1)c1.focus();return}
     if(o.suc&&o.suc!==sel.suc){toast('Esta oferta es solo en Sucursal '+suc(o.suc).nombre);return}
     if(sel.vitrina){sel.vitrina=false;sel.fecha=null;ensureFecha();clampCart();toast('Las ofertas relámpago son para pedidos de otro día; elegimos el '+fFecha.format(dateOf(sel.fecha)))}
@@ -2101,12 +2111,26 @@ function ofPreview(){
 function ofLI(o){
   var now=Date.now(),e=ofEstado(o,now),sold=ofVendidos(o.id),tot=+o.unidades||0;
   var badge=e==='activa'?'<span class="badge b-paid">Activa · termina en <span data-cdto="'+o.fin+'">'+hms(o.fin-now)+'</span></span>':e==='prox'?'<span class="badge b-hold">Programada · empieza en <span data-cdto="'+o.inicio+'">'+hms(o.inicio-now)+'</span></span>':e==='agotada'?'<span class="badge b-out">Agotada</span>':'<span class="badge b-exp">Terminada</span>';
-  return '<li><div class="of-m"><b>'+esc(ofNombre(o))+' · −'+o.pct+'%</b><small>'+esc(fDT.format(new Date(o.inicio)))+' · '+Math.round((o.fin-o.inicio)/360000)/10+' h'+(o.suc?' · Sucursal '+esc(suc(o.suc).nombre):' · Todas las sucursales')+(o.max?' · máx. '+o.max+' por pedido':'')+'</small><small>Vendidas: '+sold+(tot?' de '+tot:'')+'</small>'+(tot?'<span class="bar"><i style="width:'+Math.min(100,sold/tot*100)+'%"></i></span>':'')+'</div>'+badge+(e!=='fin'?'<button class="btn btn-sm" data-ofstop="'+o.id+'">Terminar ahora</button>':'')+'<button class="btn btn-sm" data-ofdel="'+o.id+'">Borrar</button></li>';
+  return '<li><div class="of-m"><b>'+(o.auto?'<span class="badge b-fresh" style="margin-right:6px">Automática</span>':'')+esc(ofNombre(o))+' · −'+o.pct+'%'+(o.vit?' (vitrina)':'')+'</b><small>'+esc(fDT.format(new Date(o.inicio)))+' · '+Math.round((o.fin-o.inicio)/360000)/10+' h'+(o.suc?' · Sucursal '+esc(suc(o.suc).nombre):' · Todas las sucursales')+(o.max?' · máx. '+o.max+' por pedido':'')+'</small><small>Vendidas: '+sold+(tot?' de '+tot:'')+'</small>'+(tot?'<span class="bar"><i style="width:'+Math.min(100,sold/tot*100)+'%"></i></span>':'')+'</div>'+badge+(e!=='fin'?'<button class="btn btn-sm" data-ofstop="'+o.id+'">Terminar ahora</button>':'')+'<button class="btn btn-sm" data-ofdel="'+o.id+'">Borrar</button></li>';
 }
 function ofertasPanelHTML(){
   if(!ofForm.ini)ofForm.ini=nextHour();
-  var rank={activa:0,prox:1,agotada:2,fin:3},L=(state.cfg.ofertas||[]).slice().sort(function(a,b){return rank[ofEstado(a)]-rank[ofEstado(b)]||b.inicio-a.inicio});
-  var h='<div class="pgrid"><div class="panel"><h3>Nueva oferta relámpago</h3><p class="hint">Un descuento que dura pocas horas, con piezas limitadas. Sale arriba de la tienda con cuenta regresiva y las piezas que quedan. No se suma con otros descuentos.</p>';
+  var rank={activa:0,prox:1,agotada:2,fin:3},L=(state.cfg.ofertas||[]).filter(function(o){return !o.oculta}).slice().sort(function(a,b){return rank[ofEstado(a)]-rank[ofEstado(b)]||b.inicio-a.inicio});
+  var A=afCfg(),DS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var h='<div class="panel" style="margin-bottom:20px"><h3>Ofertas relámpago automáticas</h3><p class="hint">Una vez al día, a la hora que elijas, el sistema revisa la vitrina de cada sucursal (lotes de su Excel) y lanza una oferta relámpago para los productos con más piezas que caducan pronto y todavía no tienen ese descuento. Así se mueve lo que se haría merma. En la vitrina se usa el mayor descuento, no se suman.</p>'+
+    '<div class="vt-form" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">'+
+    '<label>Estado<select data-af="on"><option value="1"'+(A.on?' selected':'')+'>Encendidas</option><option value="0"'+(A.on?'':' selected')+'>Apagadas</option></select></label>'+
+    '<label>Empiezan a las<select data-af="hora">'+[9,10,11,12,13,14,15,16,17,18,19].map(function(v){return '<option value="'+v+'"'+(+A.hora===v?' selected':'')+'>'+v+':00</option>'}).join('')+'</select></label>'+
+    '<label>Duran<select data-af="horas">'+[1,2,3,4,5,6].map(function(v){return '<option value="'+v+'"'+(+A.horas===v?' selected':'')+'>'+v+(v===1?' hora':' horas')+'</option>'}).join('')+'</select></label>'+
+    '<label>Descuento<select data-af="pct">'+[10,15,20,25,30,35,40].map(function(v){return '<option value="'+v+'"'+(+A.pct===v?' selected':'')+'>'+v+'%</option>'}).join('')+'</select></label>'+
+    '<label>Productos por sucursal<select data-af="n">'+[1,2,3,4,5].map(function(v){return '<option value="'+v+'"'+(+A.n===v?' selected':'')+'>'+v+'</option>'}).join('')+'</select></label>'+
+    '<label>Que caduquen en<select data-af="dentro">'+[1,2,3,4,5].map(function(v){return '<option value="'+v+'"'+(+A.dentro===v?' selected':'')+'>'+v+(v===1?' día o menos':' días o menos')+'</option>'}).join('')+'</select></label>'+
+    '<label>Mínimo de piezas<select data-af="minPz">'+[1,2,3,4,5].map(function(v){return '<option value="'+v+'"'+(+A.minPz===v?' selected':'')+'>'+v+'</option>'}).join('')+'</select></label>'+
+    '<label>Máximo por pedido<select data-af="max">'+[0,1,2,3,5].map(function(v){return '<option value="'+v+'"'+(+A.max===v?' selected':'')+'>'+(v?v:'Sin máximo')+'</option>'}).join('')+'</select></label></div>'+
+    '<div class="chips" role="group" aria-label="Días">'+DS.map(function(d,i){return '<button class="chip" data-afdia="'+i+'" aria-pressed="'+(A.dias.indexOf(i)>-1)+'"><b>'+d+'</b></button>'}).join('')+'</div>'+
+    '<div class="row" style="margin-top:12px"><button class="btn btn-sm" id="af-probar"'+(DB.on?'':' disabled')+'>Probar ahora</button><span class="hint">Crea las ofertas de hoy en este momento para que veas cuáles saldrían (aunque estén apagadas).</span></div>'+
+    (afUI.msg?'<p class="cf-ex" role="status">'+esc(afUI.msg)+'</p>':'')+'</div>';
+  h+='<div class="pgrid"><div class="panel"><h3>Nueva oferta relámpago</h3><p class="hint">Un descuento que dura pocas horas, con piezas limitadas. Sale arriba de la tienda con cuenta regresiva y las piezas que quedan. No se suma con otros descuentos.</p>';
   h+='<p class="lbl" style="margin-top:0">Sugerencias para empezar (llenan el formulario; tú decides si la creas)</p><div class="presets">'+PRESETS.map(function(p,i){return '<button class="preset" data-preset="'+i+'"><b>'+esc(p.t)+'</b><small>'+esc(p.why)+'</small></button>'}).join('')+'</div>';
   h+='<form class="vt-form" id="of-form"><label class="wide">Producto<select id="of-pid">'+prodOpts(ofForm.pid,true)+'</select></label>'+
     '<label>Descuento<select id="of-pct">'+[10,15,20,25,30,35,40,50].map(function(v){return '<option value="'+v+'"'+(+ofForm.pct===v?' selected':'')+'>'+v+'%</option>'}).join('')+'</select></label>'+
@@ -2119,6 +2143,8 @@ function ofertasPanelHTML(){
   h+='<div class="panel"><h3>Ofertas</h3>'+(DB.on?'':'<p class="hint">Modo local: las ofertas solo se ven en este navegador.</p>')+'<ul class="of-list">'+(L.length?L.map(ofLI).join(''):'<li class="empty">Todavía no hay ofertas relámpago.</li>')+'</ul></div></div>';
   return h;
 }
+var afUI={msg:''};
+function afCfg(){var A=state.cfg.autoflash||{};var D={on:false,hora:16,horas:3,pct:20,n:2,dentro:3,minPz:2,max:2,dias:[1,2,3,4]};Object.keys(D).forEach(function(k){if(A[k]==null)A[k]=D[k]});state.cfg.autoflash=A;return A}
 function ofGuardar(){save();lastOfSig=ofSig();if(DB.on&&DB.admin)dbSaveCfg()}
 function ofCrear(){
   var f=ofForm,pp=f.pid.split('|'),ini=new Date(f.ini).getTime();
@@ -2216,7 +2242,7 @@ function panelLoad(){var pk=snapKey(adm.suc,adm.fecha);DB.panelLoading=true;DB.l
     if(e&&(e.status===401||e.status===403)){DB.admin='';try{sessionStorage.removeItem('mrcake-admin')}catch(x){}DB.loginErr=e.error==='falta_password'?'Falta configurar ADMIN_PASSWORD en Cloudflare.':'Tu sesión terminó. Vuelve a escribir la contraseña.';renderPanel()}});
 }
 function dbSaveCfg(then){clearTimeout(DB.cfgTimer);DB.cfgTimer=setTimeout(function(){var c=state.cfg;
-  var cf={minLead:c.minLead,sugLead:c.sugLead,payMin:c.payMin,customLead:c.customLead,hoyHasta:c.hoyHasta,barra:c.barra,paquete:c.paquete,envio:c.envio,frescura:c.frescura,caducidad:c.caducidad,ofertas:c.ofertas,catalogo:c.catalogo};if(bindCfg)cf.bind=bindCfg;if(driveCfg)cf.drive=driveCfg;
+  var cf={minLead:c.minLead,sugLead:c.sugLead,payMin:c.payMin,customLead:c.customLead,hoyHasta:c.hoyHasta,barra:c.barra,paquete:c.paquete,envio:c.envio,frescura:c.frescura,caducidad:c.caducidad,ofertas:c.ofertas,catalogo:c.catalogo,autoflash:c.autoflash};if(bindCfg)cf.bind=bindCfg;if(driveCfg)cf.drive=driveCfg;
   cf.xlcat=CATALOGO.map(function(p){return [p.id,bindNorm(p.nombre),Object.keys(p.sizes).join('')]}); /* para que el servidor reconozca los productos del Excel */
   dbJSON('/panel/config',{method:'POST',admin:true,body:{config:cf}})
     .then(function(){toast('Ajustes guardados en la base de datos');if(typeof then==='function')then()}).catch(function(){toast('No se pudieron guardar los ajustes')})},500)}
@@ -2263,6 +2289,8 @@ $('#panel').addEventListener('click',function(e){
   if(b.hasAttribute('data-invgo')||b.hasAttribute('data-invsuc')){invUI.suc=b.getAttribute('data-invgo')||b.getAttribute('data-invsuc');admTab='bindinv';renderPanel();invLoad(false);var ic=$('[data-invsuc="'+invUI.suc+'"]');if(ic)ic.focus();if(b.hasAttribute('data-invgo'))window.scrollTo(0,0);return}
   if(b.id==='inv-refresh'){invLoad(true);return}
   if(b.id==='inv-csv'){invCSV();toast('Se descargó la tabla de existencias');return}
+  if(b.hasAttribute('data-afdia')){var A2=afCfg(),di=+b.getAttribute('data-afdia'),ix=A2.dias.indexOf(di);if(ix>-1)A2.dias.splice(ix,1);else A2.dias.push(di);save();if(DB.on&&DB.admin)dbSaveCfg();renderPanel();var bd=$('[data-afdia="'+di+'"]');if(bd)bd.focus();return}
+  if(b.id==='af-probar'){b.disabled=true;afUI.msg='';dbSaveCfg(function(){dbJSON('/panel/autoflash/probar',{method:'POST',admin:true,body:{}}).then(function(j){if(j.config)applyCfg(j.config);lastOfSig=ofSig();var c=j.creadas||[];afUI.msg=c.length?(c.length===1?'Se creó 1 oferta: ':'Se crearon '+c.length+' ofertas: ')+c.map(function(o){return itemLabel({pid:o.pid,size:o.size})+' en '+suc(o.suc).nombre+' ('+o.pz+(o.pz===1?' pieza)':' piezas)')}).join(', ')+'.':'No hubo productos que cumplan las reglas hoy (piezas suficientes que caduquen pronto y sin un descuento mayor).';renderPanel()}).catch(function(){afUI.msg='No se pudieron crear las ofertas. ¿Ya publicaste el Worker nuevo?';renderPanel()})});return}
   if(b.id==='cat-bind'||b.id==='cat-all'){var O3=state.cfg.catalogo;CATALOGO.forEach(function(p){O3[p.id]=O3[p.id]||{};if(b.id==='cat-all')O3[p.id].v=1;else delete O3[p.id].v});catGuardar();renderPanel();toast(b.id==='cat-all'?'Todos los productos están en la tienda':'Solo los productos con existencias en Bind');return}
   if(b.id==='xl-cancel'){xlUI.res=null;xlUI.err='';renderPanel();return}
   if(b.id==='xl-import'&&xlUI.res){var xs=adm.suc,nL=xlUI.res.lotes.length;b.disabled=true;vtAccion({accion:'importar',lotes:xlUI.res.lotes,precios:xlUI.res.precios}).then(function(){xlUI.res=null;toast('Listo: '+nL+' lotes del Excel en la vitrina de Sucursal '+suc(xs).nombre);renderPanel()}).catch(function(){b.disabled=false;toast('No se pudo importar el Excel')});return}
@@ -2281,6 +2309,7 @@ $('#panel').addEventListener('click',function(e){
   if(b.hasAttribute('data-vtdel')){var vid=b.getAttribute('data-vtdel');vtAccion({accion:'borrar',id:vid}).then(function(){toast('Pieza quitada de la vitrina');renderPanel()}).catch(function(){toast('No se pudo quitar')});return}
   if(b.hasAttribute('data-preset')){var P=PRESETS[+b.getAttribute('data-preset')];ofForm={pid:P.pid,pct:P.pct,ini:presetIni(P),hrs:P.hrs,uni:P.uni,max:P.max,suc:''};renderPanel();var fp=$('#of-pid');if(fp)fp.focus();toast('Revisa los datos y toca "Crear oferta"');return}
   if(b.hasAttribute('data-ofstop')){var os=ofById(b.getAttribute('data-ofstop'));if(os){os.off=true;os.fin=Math.min(os.fin,Date.now());ofGuardar();toast('Oferta terminada');renderPanel()}return}
+  if(b.hasAttribute('data-ofdel')&&(ofById(b.getAttribute('data-ofdel'))||{}).auto){var oa=ofById(b.getAttribute('data-ofdel'));oa.off=true;oa.fin=Math.min(oa.fin,Date.now());oa.oculta=1;ofGuardar();toast('Oferta automática quitada');renderPanel();return}
   if(b.hasAttribute('data-ofdel')){var od=b.getAttribute('data-ofdel');state.cfg.ofertas=(state.cfg.ofertas||[]).filter(function(x){return x.id!==od});ofGuardar();toast('Oferta borrada');renderPanel();return}
 });
 $('#panel').addEventListener('input',function(e){
@@ -2300,6 +2329,7 @@ $('#panel').addEventListener('change',function(e){
   if(t.id==='xl-drive'&&driveCfg){var lk=t.value.trim(),xs3=adm.suc;if(/\/folders\//.test(lk)){xlUI.err='Ese link es de una carpeta. Abre el Excel que está dentro, toca Compartir → Copiar vínculo, y pega ese link.';renderPanel();return}driveCfg[xs3]=lk;xlUI.err='';dbSaveCfg(lk?function(){xlSincronizar(xs3)}:null);return}
   if(t.hasAttribute('data-catv')){var cv=t.getAttribute('data-catv'),O=state.cfg.catalogo;O[cv]=O[cv]||{};O[cv].v=t.checked?1:0;catGuardar();toast(prod(cv).nombre+(t.checked?' ahora se vende en línea':' ya no aparece en la tienda'));return}
   if(t.hasAttribute('data-catp')){var cp=t.getAttribute('data-catp').split('|'),val=Math.round(+t.value),O2=state.cfg.catalogo;if(!(val>0)){toast('Escribe un precio mayor a 0');t.value=prod(cp[0]).sizes[cp[1]];return}O2[cp[0]]=O2[cp[0]]||{};O2[cp[0]].p=O2[cp[0]].p||{};O2[cp[0]].p[cp[1]]=val;catGuardar();toast('Precio guardado: '+itemLabel({pid:cp[0],size:cp[1]})+' '+$m(val));return}
+  if(t.hasAttribute('data-af')){var A3=afCfg(),ka=t.getAttribute('data-af');A3[ka]=ka==='on'?t.value==='1':+t.value;save();if(DB.on&&DB.admin)dbSaveCfg();toast(ka==='on'?(A3.on?'Ofertas automáticas encendidas':'Ofertas automáticas apagadas'):'Guardado');return}
   if(t.id==='bind-on'&&bindCfg){bindCfg.on=t.value==='1';bindSave();renderPanel();return}
   if(t.hasAttribute('data-bindalm')&&bindCfg){var ba=t.getAttribute('data-bindalm');bindCfg.almacenes[ba]=t.value;bindSave();renderPanel();var bs2=$('[data-bindalm="'+ba+'"]');if(bs2)bs2.focus();return}
   if(t.hasAttribute('data-bindmap')&&bindCfg){var bk=t.getAttribute('data-bindmap');if(t.value)bindCfg.mapa[bk]=t.value;else delete bindCfg.mapa[bk];bindSave();return}
