@@ -587,6 +587,7 @@ dialog#pd::backdrop{background:rgba(30,20,24,.55);-webkit-backdrop-filter:blur(4
 .rules{list-style:none;margin:0 0 12px;padding:0;font-size:14px}
 .rules li{padding:7px 0;border-bottom:1px solid var(--line)}
 .rules li:last-child{border-bottom:none}
+.cat-tbl{table-layout:fixed;min-width:620px}.cat-tbl th:first-child{width:110px}.cat-tbl th:nth-child(2){width:36%}
 .wz .grid{grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr))}
 .wz .prod{min-width:0}
 .wz .prod:hover{transform:none}
@@ -654,39 +655,124 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){retur
 function clone(o){return JSON.parse(JSON.stringify(o))}
 var money=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0});
 function $m(n){return money.format(Math.round(n||0))}
-/* Catálogo de Mr. Cake */
-var CATS=[
-  {id:'vainilla',nombre:'Vainilla'},{id:'chocolate',nombre:'Chocolate'},{id:'humedos',nombre:'Húmedos'},
-  {id:'cheesecakes',nombre:'Cheesecakes'},{id:'especiales',nombre:'Especiales'},{id:'individuales',nombre:'Individuales'},{id:'secos',nombre:'Muffins'}
-];
-var SIZE_LABEL={m:'Mediano',g:'Grande',c:'Charolita',n:'Pieza'};
+/* Catálogo de Mr. Cake, generado del archivo de productos de Bind (104 productos).
+   Nombres, descripciones, fotos y claves de Bind son reales. LOS PRECIOS SON INVENTADOS: corrígelos en Panel > Catálogo.
+   "on":1 = tenía existencias en Bind al descargar; los demás quedan ocultos hasta activarlos en el panel. */
+var CATS=[{"id": "humedos", "nombre": "Húmedos"}, {"id": "betun", "nombre": "De betún"}, {"id": "cheesecakes", "nombre": "Cheesecakes"}, {"id": "individuales", "nombre": "Charolas y rebanadas"}, {"id": "secos", "nombre": "Panadería"}, {"id": "postres", "nombre": "Postres"}, {"id": "temporada", "nombre": "Temporada"}];
+var SIZE_LABEL={c:'Chico',m:'Mediano',g:'Familiar',n:'Pieza'};
 var CATALOGO=[
-  {id:'emperador',cat:'vainilla',nombre:'Emperador',top:1,desc:'Pan de mantequilla relleno y cubierto de betún de queso, con dulce de leche y nuez.',sizes:{m:210,g:350}},
-  {id:'nevado',cat:'vainilla',nombre:'Nevado de Limón',desc:'Pan de vainilla con betún de queso y limón, decorado con coco.',sizes:{g:340}},
-  {id:'rollo',cat:'vainilla',nombre:'Rollo',noMsg:1,desc:'Pan de vainilla relleno y decorado con dulce de leche y nuez.',sizes:{g:290}},
-  {id:'tortuga',cat:'chocolate',nombre:'Tortuga',top:1,desc:'Pan de chocolate con betún de queso, chocolate, cajeta y nuez.',sizes:{m:210,g:350}},
-  {id:'snickers',cat:'chocolate',nombre:'Snickers',desc:'Pan de chocolate con betún de queso, chocolate, Snickers, cacahuate y cajeta.',sizes:{m:210,g:350}},
-  {id:'flan',cat:'chocolate',nombre:'Flan',desc:'Pan de chocolate con flan de queso, cajeta y cerezas.',sizes:{m:210,g:350}},
-  {id:'tresleches',cat:'humedos',nombre:'Tres Leches',top:1,desc:'Pan de vainilla remojado en tres leches, con crema batida, nuez y cereza.',sizes:{m:210,g:350}},
-  {id:'pinacolada',cat:'humedos',nombre:'Piña Colada',desc:'Pan de vainilla con jugos tropicales, betún de queso, coco tostado, piña y cereza.',sizes:{m:240,g:340}},
-  {id:'oreo',cat:'humedos',nombre:'Oreo',desc:'Pan de chocolate en tres leches, betún de queso con galleta Oreo y chocolate líquido.',sizes:{m:220,g:350}},
-  {id:'nutella',cat:'humedos',nombre:'Nutella',top:1,desc:'Pan de vainilla en tres leches, betún de queso, Nutella y Ferrero.',sizes:{m:210,g:340}},
-  {id:'frutas',cat:'humedos',nombre:'Frutas',top:1,desc:'Pan de vainilla en tres leches, betún de queso, durazno, piña y cerezas.',sizes:{m:210,g:350}},
-  {id:'chtortuga',cat:'cheesecakes',nombre:'Cheesecake Tortuga',top:1,desc:'Pastel de queso con chocolate líquido, cajeta y nuez.',sizes:{g:350}},
-  {id:'chblueberry',cat:'cheesecakes',nombre:'Cheesecake Blueberry',desc:'Pastel de queso con topping de blueberry.',sizes:{g:350}},
-  {id:'zanahoria',cat:'especiales',nombre:'Zanahoria',temporada:1,desc:'Pastel de zanahoria con betún de queso, nuez y cereza.',sizes:{m:210,g:350}},
-  {id:'ind-emperador',cat:'individuales',nombre:'Emperador individual',base:'emperador',top:1,desc:'Charolita de Emperador.',sizes:{c:50}},
-  {id:'ind-nutella',cat:'individuales',nombre:'Nutella individual',base:'nutella',desc:'Charolita de Nutella.',sizes:{c:50}},
-  {id:'ind-tresleches',cat:'individuales',nombre:'Tres Leches individual',base:'tresleches',desc:'Charolita de Tres Leches.',sizes:{c:50}},
-  {id:'ind-nevado',cat:'individuales',nombre:'Nevado de Limón individual',base:'nevado',desc:'Charolita de Nevado de Limón.',sizes:{c:50}},
-  {id:'ind-snickers',cat:'individuales',nombre:'Snickers individual',base:'snickers',desc:'Charolita de Snickers.',sizes:{c:50}},
-  {id:'ind-pinacolada',cat:'individuales',nombre:'Piña Colada individual',base:'pinacolada',desc:'Charolita de Piña Colada.',sizes:{c:50}},
-  {id:'ind-tortuga',cat:'individuales',nombre:'Tortuga individual',base:'tortuga',desc:'Charolita de Tortuga.',sizes:{c:50}},
-  {id:'ind-oreo',cat:'individuales',nombre:'Oreo individual',base:'oreo',desc:'Charolita de Oreo.',sizes:{c:50}},
-  {id:'muffin-nuez',cat:'secos',nombre:'Muffin de nuez',desc:'Pan suave de muffin con trozos de nuez.',sizes:{n:20}},
-  {id:'muffin-chispas',cat:'secos',nombre:'Muffin de chispas de chocolate',desc:'Muffin con chispas de chocolate.',sizes:{n:20}},
-  {id:'muffin-fresa',cat:'secos',nombre:'Muffin de fresa',desc:'Muffin con bits de fresa.',sizes:{n:20}},
-  {id:'muffin-frutosrojos',cat:'secos',nombre:'Muffin de frutos rojos',desc:'Muffin con frutos rojos.',sizes:{n:20}}
+  {"id": "tresleches", "cat": "humedos", "nombre": "Tres Leches", "desc": "Pan de vainilla mojado en tres leches, cubierto de crema batida y decorado con nuez y cereza.", "sizes": {"m": 210, "g": 350}, "bind": {"m": "1ea69222-b9a7-482e-b2a2-ac3cb3af484c", "g": "218a6aee-f5e3-4455-a23b-010852e78e62"}, "look": "tresleches", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/218a6aee-f5e3-4455-a23b-010852e78e62?sv=2014-02-14&sr=b&sig=bX4eExP%2B%2BP6cA3gybxUkL8ezs%2B4igKYsDInYYlQMdlY%3D&st=2026-09-27T20%3A57%3A36Z&se=2126-09-27T21%3A07%3A36Z&sp=r", "on": 1, "top": 1},
+  {"id": "tresleches-cajeta", "cat": "humedos", "nombre": "Tres Leches Cajeta", "desc": "Pan de vainilla mojado en tres leches, cubierto de crema batida, con cajeta, nuez y cereza.", "sizes": {"c": 65, "m": 230, "g": 370}, "bind": {"c": "0556ac92-1d80-4b02-a35c-5fc16c900164", "m": "3bd811d8-7ca8-4485-84d6-82014cc420e0", "g": "d43cbffc-82ed-4582-8a7a-6abd439c99bf"}, "look": "tresleches", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/d43cbffc-82ed-4582-8a7a-6abd439c99bf?sv=2014-02-14&sr=b&sig=JuUBwdunjA56Pa0klkzDa3jAWquU8PH4bz2LPq%2FdOG0%3D&st=2026-09-27T22%3A55%3A04Z&se=2126-09-27T23%3A05%3A04Z&sp=r", "on": 1},
+  {"id": "frutas", "cat": "humedos", "nombre": "Fruta", "desc": "Pan de vainilla mojado en tres leches, con betún de queso Philadelphia y fruta.", "sizes": {"c": 65, "m": 210, "g": 350}, "bind": {"c": "e02afc5f-175f-4ce8-b3ac-4f219b3d3616", "m": "dc6af399-d764-4bc6-add9-caa3f08cf4e0", "g": "23083f46-8067-4abd-8d50-165ee79ec9bc"}, "look": "frutas", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/23083f46-8067-4abd-8d50-165ee79ec9bc?sv=2014-02-14&sr=b&sig=2uHCi1CRR25YQ5gkzkdrQVNn5GNkCTvMsIEMfNsdRCI%3D&st=2026-09-18T13%3A58%3A53Z&se=2126-09-18T14%3A08%3A53Z&sp=r", "on": 1, "top": 1},
+  {"id": "nutella", "cat": "humedos", "nombre": "Nutella", "desc": "Pan de vainilla mojado en tres leches, con betún de queso, decorado con Nutella y Ferrero.", "sizes": {"c": 70, "m": 230, "g": 370}, "bind": {"c": "a0e96ac7-fb69-4ae3-aae0-a03127604af9", "m": "bcdbd125-9899-440c-b100-c4b20cde15ef", "g": "baed3a07-1b07-4f9f-a308-4c7d8975089f"}, "look": "nutella", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/baed3a07-1b07-4f9f-a308-4c7d8975089f?sv=2014-02-14&sr=b&sig=cguwQ7vOMrUCzHr0xyXcT3YHCuR44%2B8tcti%2FVFknOM4%3D&st=2026-09-18T13%3A57%3A58Z&se=2126-09-18T14%3A07%3A58Z&sp=r", "on": 1, "top": 1},
+  {"id": "oreo", "cat": "humedos", "nombre": "Oreo", "desc": "Pan de chocolate mojado en tres leches, relleno de betún de queso con galleta Oreo.", "sizes": {"c": 70, "m": 230, "g": 370}, "bind": {"c": "b5b62f74-b225-4016-b2c0-6077dd59f105", "m": "2f692c36-6f26-482f-ab4c-387093326dcc", "g": "f18b72ec-648b-4668-abd8-fcc70579f054"}, "look": "oreo", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/f18b72ec-648b-4668-abd8-fcc70579f054?sv=2014-02-14&sr=b&sig=%2F%2FDB00KpwDVWKLzTQ3Q0cdh4HVNRbUsRDdULnLi9eSQ%3D&st=2026-09-18T13%3A59%3A56Z&se=2126-09-18T14%3A09%3A56Z&sp=r", "on": 1},
+  {"id": "pinacolada", "cat": "humedos", "nombre": "Piña", "desc": "Pan de vainilla humedecido con jarabe de piña, cubierto y relleno de betún de queso con coco, decorado con piña y cerezas.", "sizes": {"m": 220, "g": 350}, "bind": {"m": "46656855-a73e-4296-bc6a-0fb1c73cb04d", "g": "8d20e547-0722-42a9-a1b5-2253ba1a7822"}, "look": "pinacolada", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/8d20e547-0722-42a9-a1b5-2253ba1a7822?sv=2014-02-14&sr=b&sig=H5Lvg1msxtr3dPyIpy7rLxGII3oAr8haOrFQVqNLTBI%3D&st=2026-09-18T13%3A56%3A39Z&se=2126-09-18T14%3A06%3A39Z&sp=r", "on": 1},
+  {"id": "nevado", "cat": "humedos", "nombre": "Nevado", "desc": "Pan de vainilla mojado en tres leches, cubierto y relleno de betún de queso con coco y limón.", "sizes": {"m": 210, "g": 340}, "bind": {"m": "47f25d39-85d5-4f45-a876-cf07055dab58", "g": "8cdaf340-0cf7-489e-80b5-d4275afcd507"}, "look": "nevado", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/8cdaf340-0cf7-489e-80b5-d4275afcd507?sv=2014-02-14&sr=b&sig=1L7NdyshKtqwj7pBJw7vrVmZe%2BHZzinfQpfl4bFNJig%3D&st=2026-09-18T13%3A56%3A04Z&se=2126-09-18T14%3A06%3A04Z&sp=r", "on": 1},
+  {"id": "almondjoy", "cat": "humedos", "nombre": "Almond Joy", "desc": "Pan de chocolate húmedo en jarabe de coco, cubierto con betún de queso con mantequilla y almendra, relleno de coco y almendra tostada, con ganache de chocolate.", "sizes": {"c": 75, "g": 390}, "bind": {"c": "8f3a2603-510c-4d80-9dc5-31213573bcc6", "g": "8284ef1b-9336-4e9b-88af-6cff8627db05"}, "look": "tortuga", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/8284ef1b-9336-4e9b-88af-6cff8627db05?sv=2014-02-14&sr=b&sig=9PYgGoL47Igkdrw8l6qBncGsSpixhWXm1TPWjHmB%2BvE%3D&st=2026-10-23T17%3A43%3A28Z&se=2126-10-23T17%3A53%3A28Z&sp=r", "on": 0},
+  {"id": "pinguino", "cat": "humedos", "nombre": "Pingüino", "desc": "Pan semihúmedo relleno de betún de queso, cubierto con betún de queso y ganache de chocolate, con nuez y chispas blancas.", "sizes": {"g": 360}, "bind": {"g": "01ea265a-5c7f-4851-8ba6-fd0c15161484"}, "look": "oreo", "on": 0},
+  {"id": "emperador", "cat": "betun", "nombre": "Emperador", "desc": "Pan de mantequilla relleno de betún de queso, cubierto con betún de queso crema, dulce de leche y nuez.", "sizes": {"c": 65, "m": 210, "g": 350}, "bind": {"c": "6c980a15-3bd9-4b6a-be6f-53f1996c357e", "m": "0d3b42f1-62f2-4115-ae63-fdbd810226b2", "g": "dccb5c46-984d-4ada-8cb1-401c3a0e88aa"}, "look": "emperador", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/dccb5c46-984d-4ada-8cb1-401c3a0e88aa?sv=2014-02-14&sr=b&sig=0%2Fy7%2FzsdE2WUPLSoQWMH59Qb9dKY%2FpUuG%2FChbZXCzAA%3D&st=2026-09-18T13%3A54%3A48Z&se=2126-09-18T14%3A04%3A48Z&sp=r", "on": 1, "top": 1},
+  {"id": "ambar", "cat": "betun", "nombre": "Ámbar", "desc": "Pan de mantequilla relleno de betún de dulce de leche y nuez, con betún \"naked\" de queso y mantequilla, decorado con nuez.", "sizes": {"c": 65, "g": 350}, "bind": {"c": "088e0d7f-497d-43b5-8817-fb8f2d08ec4f", "g": "1532aae6-84ad-4065-ace3-03dc9a1b6d42"}, "look": "emperador", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/1532aae6-84ad-4065-ace3-03dc9a1b6d42?sv=2014-02-14&sr=b&sig=PU5ldoD6Rt2mBc6TGX1Jgsk%2BFZB%2FSd6%2FZuj7rql2NTU%3D&st=2026-10-01T13%3A43%3A57Z&se=2126-10-01T13%3A53%3A57Z&sp=r", "on": 1},
+  {"id": "tortuga", "cat": "betun", "nombre": "Tortuga", "desc": "Pan de chocolate con betún de queso, cubierto y relleno de chocolate, cajeta y nuez.", "sizes": {"c": 65, "m": 210, "g": 350}, "bind": {"c": "4bf93e46-c373-4585-9d1e-270e7394676c", "m": "2ca3624e-50ee-4275-9992-ee2efe1dfc94", "g": "941ca758-47e3-4791-8ed1-50c826f7365b"}, "look": "tortuga", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/941ca758-47e3-4791-8ed1-50c826f7365b?sv=2014-02-14&sr=b&sig=%2BIzdQWEZzvbp9m%2FhDTeqzmq3iNQYU4w9V0EV44oZwec%3D&st=2026-09-18T14%3A04%3A58Z&se=2126-09-18T14%3A14%3A58Z&sp=r", "on": 1, "top": 1},
+  {"id": "snickers", "cat": "betun", "nombre": "Snicker", "desc": "Pan de chocolate con betún de queso y chocolate, relleno de chocolate, cajeta y cacahuate, decorado con Snickers.", "sizes": {"c": 70, "m": 230, "g": 370}, "bind": {"c": "475da71e-0363-418c-ad6f-69296b95455f", "m": "bdb07111-e8f7-4ec5-86d9-f56fa8e559a1", "g": "404feb24-aba5-4641-abca-dd99c4a4ddc9"}, "look": "snickers", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/404feb24-aba5-4641-abca-dd99c4a4ddc9?sv=2014-02-14&sr=b&sig=5VHKIcY1uoTDy37sY75PBZcaSTaYugTZQLljKuIdOg8%3D&st=2026-09-18T14%3A03%3A36Z&se=2126-09-18T14%3A13%3A36Z&sp=r", "on": 1},
+  {"id": "milkyway", "cat": "betun", "nombre": "Milky Way", "desc": "Pan de chocolate con betún de queso, chocolate y Milky Way.", "sizes": {"c": 70, "m": 230, "g": 370}, "bind": {"c": "b0aca276-fd7a-400e-8009-f5ff6e9c98f6", "m": "497d6070-8ed9-4e97-8047-e52dafa92969", "g": "afd01a45-50d5-457d-8ffa-2937ffef98da"}, "look": "tortuga", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/497d6070-8ed9-4e97-8047-e52dafa92969?sv=2014-02-14&sr=b&sig=cutxFxm%2FMEPInqpM%2BeFPpwE%2FfW2Ba3iCR4XzuomPrLQ%3D&st=2026-10-05T20%3A02%3A41Z&se=2126-10-05T20%3A12%3A41Z&sp=r", "on": 1},
+  {"id": "flan", "cat": "betun", "nombre": "Flan", "desc": "Pan de chocolate con flan de queso, decorado con cajeta y cerezas.", "sizes": {"m": 210, "g": 350}, "bind": {"m": "c7fd6e9a-2f46-4cfb-837e-21636e59ad1c", "g": "c30f5c54-e998-4b45-b653-8723598d148c"}, "look": "flan", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/c30f5c54-e998-4b45-b653-8723598d148c?sv=2014-02-14&sr=b&sig=TV8ktfRqhffshwEl0NljiFk%2BEyT8bRT0qv5yJg4yrsk%3D&st=2026-10-02T15%3A22%3A30Z&se=2126-10-02T15%3A32%3A30Z&sp=r", "on": 1},
+  {"id": "zanahoria", "cat": "betun", "nombre": "Zanahoria", "desc": "Pan de zanahoria y galleta, decorado con betún de queso, nuez y cerezas.", "sizes": {"c": 65, "m": 220, "g": 360}, "bind": {"c": "8a786524-5a18-4ea9-9ff1-fab4dc1427cb", "m": "40d2f4fd-abf7-48cc-9a48-5f2ca8c1e15f", "g": "033cd91a-206b-43b2-9a27-c02943af2256"}, "look": "zanahoria", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/40d2f4fd-abf7-48cc-9a48-5f2ca8c1e15f?sv=2014-02-14&sr=b&sig=VYyKMWTCIT8c9DTjHYBwBkIWIOXt0UtllqBT84NHbOs%3D&st=2026-10-02T15%3A38%3A16Z&se=2126-10-02T15%3A48%3A16Z&sp=r", "on": 0},
+  {"id": "zanahoria-premium", "cat": "betun", "nombre": "Zanahoria Premium", "desc": "Versión premium de nuestro pastel de zanahoria.", "sizes": {"m": 260, "g": 410}, "bind": {"m": "b45df76a-703e-4a16-a6af-5d1905dae6e4", "g": "fc32914e-9bd8-4b63-a8bd-dbdfc6f880a3"}, "look": "zanahoria", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/fc32914e-9bd8-4b63-a8bd-dbdfc6f880a3?sv=2014-02-14&sr=b&sig=q8ndVhb0a50Pg2AXybJdVXrEAlKp8PFEpeS9%2FEyAzBM%3D&st=2026-09-18T14%3A24%3A58Z&se=2126-09-18T14%3A34%3A58Z&sp=r", "on": 0},
+  {"id": "banana", "cat": "betun", "nombre": "Banana", "desc": "Pastel de plátano.", "sizes": {"m": 220, "g": 360}, "bind": {"m": "422acf41-cf9a-4a8c-8ae7-1473a6281aac", "g": "d299d680-3f34-4012-bc7b-888aacff2874"}, "look": "emperador", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/d299d680-3f34-4012-bc7b-888aacff2874?sv=2014-02-14&sr=b&sig=F5tHC%2B2nav5yBgeJoEqeBb5H%2FP3N0Ox8uGGU1mVR%2BjQ%3D&st=2026-09-18T14%3A22%3A49Z&se=2126-09-18T14%3A32%3A49Z&sp=r", "on": 0},
+  {"id": "redvelvet", "cat": "betun", "nombre": "Red Velvet Especial", "desc": "Pastel Red Velvet.", "sizes": {"g": 390}, "bind": {"g": "89f7fef4-f578-4619-8433-b6949c39261e"}, "look": "tresleches", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/89f7fef4-f578-4619-8433-b6949c39261e?sv=2014-02-14&sr=b&sig=gJQbn5B8QL8Nbu%2FEYzGAFtiGLYJ2RxCgdah7sdTybuw%3D&st=2026-09-18T14%3A32%3A12Z&se=2126-09-18T14%3A42%3A12Z&sp=r", "on": 0},
+  {"id": "italiano", "cat": "betun", "nombre": "Italiano", "desc": "Pastel italiano.", "sizes": {"g": 380}, "bind": {"g": "4356bca9-0fa2-4102-9c57-901cc1a19a0a"}, "look": "emperador", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/4356bca9-0fa2-4102-9c57-901cc1a19a0a?sv=2014-02-14&sr=b&sig=Il1fQtQIxydFEB8SxhNgy62Uv96Jq%2FUrJeG6uSYsePE%3D&st=2026-09-18T14%3A21%3A48Z&se=2126-09-18T14%3A31%3A48Z&sp=r", "on": 0},
+  {"id": "fiesta", "cat": "betun", "nombre": "Fiesta Cumpleaños", "desc": "Pastel relleno de mermelada de fresa, cubierto con betún de mantequilla y chispas de colores.", "sizes": {"m": 230}, "bind": {"m": "1a299fe5-ac0e-4a97-95c6-cf75ba98bde1"}, "look": "tresleches", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/1a299fe5-ac0e-4a97-95c6-cf75ba98bde1?sv=2014-02-14&sr=b&sig=cKoe5HCLC6Vd6GBA%2FTFNzlj9rUjAMF9K2PXP%2FyObX10%3D&st=2026-11-09T18%3A16%3A23Z&se=2126-11-09T18%3A26%3A23Z&sp=r", "on": 0},
+  {"id": "delirio", "cat": "betun", "nombre": "Delirio Fiesta", "desc": "Pastel Delirio Fiesta.", "sizes": {"g": 380}, "bind": {"g": "75dd4bff-af2e-4a70-9f1b-c252d8a1566e"}, "look": "tresleches", "on": 0},
+  {"id": "frutosrojos", "cat": "betun", "nombre": "Frutos Rojos", "desc": "Pastel con frutos rojos.", "sizes": {"g": 380}, "bind": {"g": "8270509b-edf1-4b6b-9614-bcb0f6926eb5"}, "look": "frutas", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/8270509b-edf1-4b6b-9614-bcb0f6926eb5?sv=2014-02-14&sr=b&sig=bncvZv25oBe9yrQClY434zI0RZmGt3VOowzLcIi31tA%3D&st=2026-09-18T14%3A23%3A17Z&se=2126-09-18T14%3A33%3A17Z&sp=r", "on": 1},
+  {"id": "chtortuga", "cat": "cheesecakes", "nombre": "Cheesecake Tortuga", "desc": "Pastel de queso decorado con betún de queso, chocolate, cajeta y nuez.", "sizes": {"g": 350}, "bind": {"g": "83ccbee4-b5ea-4aaa-9fc3-01271fdd557a"}, "look": "chtortuga", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/83ccbee4-b5ea-4aaa-9fc3-01271fdd557a?sv=2014-02-14&sr=b&sig=DdnXOuRH6QLx7g30WXmTw%2FQQLrWAMJNDYtuWT9frxVU%3D&st=2026-09-18T14%3A06%3A48Z&se=2126-09-18T14%3A16%3A48Z&sp=r", "on": 1, "top": 1},
+  {"id": "chblueberry", "cat": "cheesecakes", "nombre": "Cheesecake Blueberry", "desc": "Pastel de queso decorado con blueberry.", "sizes": {"g": 350}, "bind": {"g": "1e812618-d2a8-4a8b-9d54-25c0922a677d"}, "look": "chblueberry", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/1e812618-d2a8-4a8b-9d54-25c0922a677d?sv=2014-02-14&sr=b&sig=vOTDUCOjbIeSO4fK9QUzSojtJqEh1wtOulOBzQhu0zo%3D&st=2026-09-15T14%3A16%3A56Z&se=2126-09-15T14%3A26%3A56Z&sp=r", "on": 1},
+  {"id": "chnatural", "cat": "cheesecakes", "nombre": "Cheesecake Natural", "desc": "Pastel de queso natural.", "sizes": {"g": 320}, "bind": {"g": "53f067cb-ceba-4746-8cd7-5fb7a1c100cf"}, "look": "chtortuga", "on": 1},
+  {"id": "chfresa", "cat": "cheesecakes", "nombre": "Cheesecake Fresa", "desc": "Pastel de queso decorado con betún de queso y fresas naturales.", "sizes": {"g": 360}, "bind": {"g": "2682d620-d582-4f93-a090-daf037f2553f"}, "look": "chblueberry", "on": 0},
+  {"id": "chfrutosrojos", "cat": "cheesecakes", "nombre": "Cheesecake Frutos Rojos", "desc": "Pastel de queso decorado con betún de queso y frutos rojos.", "sizes": {"g": 360}, "bind": {"g": "6040fdd2-a6e7-421c-ba82-2024bd41d518"}, "look": "chblueberry", "on": 0},
+  {"id": "chbrownie", "cat": "cheesecakes", "nombre": "Cheesecake Brownie", "desc": "Cheesecake con brownie.", "sizes": {"g": 370}, "bind": {"g": "c4a54b75-6d8b-4ea5-a6ce-95d7d9b1e3bf"}, "look": "chtortuga", "on": 0},
+  {"id": "chglorias", "cat": "cheesecakes", "nombre": "Cheesecake de Glorias", "desc": "Cheesecake con glorias.", "sizes": {"g": 370}, "bind": {"g": "c7bc83b4-bacd-4e6b-8db7-0ce9e7f4edad"}, "look": "chtortuga", "on": 0},
+  {"id": "chmoon", "cat": "cheesecakes", "nombre": "Moon Cheesecake", "desc": "Moon Cheesecake.", "sizes": {"g": 380}, "bind": {"g": "4575375e-37fe-4d0e-9f36-b9dd57af13e9"}, "look": "chtortuga", "on": 0},
+  {"id": "tartavasca", "cat": "cheesecakes", "nombre": "Tarta Vasca", "desc": "Tarta vasca de queso.", "sizes": {"g": 380}, "bind": {"g": "7c599126-92c3-4f3c-91be-613a1367eff5"}, "look": "chtortuga", "on": 0},
+  {"id": "ind-tresleches-cajeta", "cat": "individuales", "nombre": "Charola Tres Leches Cajeta", "desc": "Charola individual de Tres Leches Cajeta.", "sizes": {"n": 55}, "bind": {"n": "8f767c79-3e44-4a11-855c-8e44aea5b587"}, "base": "tresleches-cajeta", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/8f767c79-3e44-4a11-855c-8e44aea5b587?sv=2014-02-14&sr=b&sig=m6Qm%2FFAfm6EWWL0bI1hTBa67FyWuZcaKsULNcpGhJ5M%3D&st=2026-09-18T14%3A37%3A59Z&se=2126-09-18T14%3A47%3A59Z&sp=r", "on": 1},
+  {"id": "ind-emperador", "cat": "individuales", "nombre": "Charola Emperador", "desc": "Charola individual de Emperador.", "sizes": {"n": 50}, "bind": {"n": "268cec1b-c6e4-4c43-b750-8bd3dd2f9afa"}, "base": "emperador", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/268cec1b-c6e4-4c43-b750-8bd3dd2f9afa?sv=2014-02-14&sr=b&sig=PuLtupJXJP6f3LZBUHV7Np%2F9OuyTIX9zOS5S%2BT4ENeI%3D&st=2026-09-18T14%3A37%3A15Z&se=2126-09-18T14%3A47%3A15Z&sp=r", "on": 1, "top": 1},
+  {"id": "ind-milkyway", "cat": "individuales", "nombre": "Charola Milky Way", "desc": "Charola individual de Milky Way.", "sizes": {"n": 55}, "bind": {"n": "96e84ed1-71cb-4f64-8e5d-e993fe102afc"}, "base": "milkyway", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/96e84ed1-71cb-4f64-8e5d-e993fe102afc?sv=2014-02-14&sr=b&sig=HxboldCFGUsIO1f7INCdg%2Bovt8nZB6HWFaImZd4wvHw%3D&st=2026-09-18T14%3A38%3A57Z&se=2126-09-18T14%3A48%3A57Z&sp=r", "on": 1},
+  {"id": "ind-nevado", "cat": "individuales", "nombre": "Charola Nevado", "desc": "Charola individual de Nevado.", "sizes": {"n": 50}, "bind": {"n": "aab090ce-b2ee-464f-866c-20677efb7a52"}, "base": "nevado", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/aab090ce-b2ee-464f-866c-20677efb7a52?sv=2014-02-14&sr=b&sig=hEV2EqsnacG%2F%2BMJLoWPyavoxeGNcoVqUb73sF1NzZxI%3D&st=2026-09-18T14%3A36%3A11Z&se=2126-09-18T14%3A46%3A11Z&sp=r", "on": 1},
+  {"id": "ind-nutella", "cat": "individuales", "nombre": "Charola Nutella", "desc": "Charola individual de Nutella.", "sizes": {"n": 55}, "bind": {"n": "bd21099f-bc99-4b33-b561-d381364e1c38"}, "base": "nutella", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/bd21099f-bc99-4b33-b561-d381364e1c38?sv=2014-02-14&sr=b&sig=EyaQKPb9%2BBf4HMXTmGxITjKR1irbVlZ1zghVjM%2FbRU4%3D&st=2026-09-18T14%3A36%3A32Z&se=2126-09-18T14%3A46%3A32Z&sp=r", "on": 1},
+  {"id": "ind-oreo", "cat": "individuales", "nombre": "Charola Oreo", "desc": "Charola individual de Oreo.", "sizes": {"n": 55}, "bind": {"n": "c3025a41-2228-4687-a5a9-3e91a04b0caf"}, "base": "oreo", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/c3025a41-2228-4687-a5a9-3e91a04b0caf?sv=2014-02-14&sr=b&sig=HfApsaAGDyDfL%2B4gCSjmkpVRk4PKWdQLOh06m8Bv6rA%3D&st=2026-09-18T14%3A36%3A56Z&se=2126-09-18T14%3A46%3A56Z&sp=r", "on": 1},
+  {"id": "ind-tortuga", "cat": "individuales", "nombre": "Charola Tortuga", "desc": "Charola individual de Tortuga.", "sizes": {"n": 50}, "bind": {"n": "a7fc56c7-3254-49b5-af64-adef8760465e"}, "base": "tortuga", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/a7fc56c7-3254-49b5-af64-adef8760465e?sv=2014-02-14&sr=b&sig=vaj73ePRnGcGRQWw%2Bac1JZjWqwHLb1mPjyFz959xiyQ%3D&st=2026-09-18T14%3A38%3A39Z&se=2126-09-18T14%3A48%3A39Z&sp=r", "on": 1},
+  {"id": "ind-pinacolada", "cat": "individuales", "nombre": "Charola Piña Colada", "desc": "Charola individual de Piña Colada.", "sizes": {"n": 50}, "bind": {"n": "08b83bbf-2039-4e6d-8723-7cc7b2615811"}, "base": "pinacolada", "on": 0},
+  {"id": "ind-14feb", "cat": "individuales", "nombre": "Charola 14 de Febrero", "desc": "Charola especial de San Valentín.", "sizes": {"n": 55}, "bind": {"n": "acf21e05-d50c-4639-a006-bb23abd290ce"}, "base": "tresleches", "on": 0},
+  {"id": "reb-dia", "cat": "individuales", "nombre": "Rebanada", "desc": "Rebanada individual de pastel.", "sizes": {"n": 45}, "bind": {"n": "68e45ec2-7a74-4ad8-8c15-532f8638a6c5"}, "base": "tresleches", "on": 1},
+  {"id": "reb-chblueberry", "cat": "individuales", "nombre": "Rebanada Cheesecake Blueberry", "desc": "Rebanada de cheesecake de blueberry.", "sizes": {"n": 60}, "bind": {"n": "d66bba4b-ba51-48cd-aabc-26013b709083"}, "base": "chblueberry", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/d66bba4b-ba51-48cd-aabc-26013b709083?sv=2014-02-14&sr=b&sig=iDQO5JWzaLOSe%2BCHVCedXWCm4wwvjhWThNLydoN4P4c%3D&st=2026-09-18T14%3A33%3A41Z&se=2126-09-18T14%3A43%3A41Z&sp=r", "on": 1},
+  {"id": "reb-chtortuga", "cat": "individuales", "nombre": "Rebanada Cheesecake Tortuga", "desc": "Rebanada de cheesecake tortuga.", "sizes": {"n": 60}, "bind": {"n": "ae8114ca-0c8b-4821-8d8a-ed317b63f6fe"}, "base": "chtortuga", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/ae8114ca-0c8b-4821-8d8a-ed317b63f6fe?sv=2014-02-14&sr=b&sig=99vI%2BF1mhuubL0GL8%2F7GVmeKxRIE19hiGNUgtkqIOTA%3D&st=2026-09-18T14%3A35%3A11Z&se=2126-09-18T14%3A45%3A11Z&sp=r", "on": 1},
+  {"id": "reb-chfrio", "cat": "individuales", "nombre": "Rebanada Cheesecake Frío", "desc": "Rebanada de cheesecake frío.", "sizes": {"n": 60}, "bind": {"n": "8ec30857-b9ae-4aab-848c-1a352e24c954"}, "base": "chnatural", "on": 1},
+  {"id": "reb-mango", "cat": "individuales", "nombre": "Rebanada Rollo de Mango", "desc": "Rollo de mango: pan de vainilla, betún de queso y mango.", "sizes": {"n": 55}, "bind": {"n": "f7635f39-9b05-4e56-87c4-6faf2de8f2e4"}, "base": "mango", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/f7635f39-9b05-4e56-87c4-6faf2de8f2e4?sv=2014-02-14&sr=b&sig=zTz8BnbhoKq17QzPAWKhjORnUNP0us2lfWfqciO3%2BaA%3D&st=2026-10-02T15%3A34%3A24Z&se=2126-10-02T15%3A44%3A24Z&sp=r", "on": 0},
+  {"id": "muffin-chispas", "cat": "secos", "nombre": "Muffin de chispas", "desc": "Muffin con chispas de chocolate.", "sizes": {"n": 20}, "bind": {"n": "0659699d-f68a-426e-9abc-d57a32d4e12d"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/0659699d-f68a-426e-9abc-d57a32d4e12d?sv=2014-02-14&sr=b&sig=267QmvIPPHAP4BnCBIYxDb4OhtQ3Z02HA6ip3aCuIzg%3D&st=2026-09-18T14%3A42%3A24Z&se=2126-09-18T14%3A52%3A24Z&sp=r", "on": 1},
+  {"id": "muffin-nuez", "cat": "secos", "nombre": "Muffin de nuez", "desc": "Muffin con trozos de nuez.", "sizes": {"n": 20}, "bind": {"n": "681404ef-a44c-4655-8665-15301116ce84"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/681404ef-a44c-4655-8665-15301116ce84?sv=2014-02-14&sr=b&sig=UmBftpnTVtY9HI01PTJ4UZwpibMYZ71vS%2BiBjgki1Pw%3D&st=2026-09-18T14%3A41%3A34Z&se=2126-09-18T14%3A51%3A34Z&sp=r", "on": 1},
+  {"id": "muffin-nutella", "cat": "secos", "nombre": "Muffin de Nutella", "desc": "Muffin relleno de Nutella.", "sizes": {"n": 25}, "bind": {"n": "a1e9ec63-9f87-4345-bfd2-b257e0ca0571"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/a1e9ec63-9f87-4345-bfd2-b257e0ca0571?sv=2014-02-14&sr=b&sig=2jtOd0fKRr0YtCWLMQadl51VU7zRIwZUG4NQ0%2FTLK5I%3D&st=2026-09-18T14%3A41%3A55Z&se=2126-09-18T14%3A51%3A55Z&sp=r", "on": 1},
+  {"id": "muffin-dulceleche", "cat": "secos", "nombre": "Muffin de dulce de leche", "desc": "Muffin con dulce de leche.", "sizes": {"n": 25}, "bind": {"n": "3debd68d-5d8e-4676-a955-b46e30eb994f"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/3debd68d-5d8e-4676-a955-b46e30eb994f?sv=2014-02-14&sr=b&sig=mZjuRYGDRZrunGAgNtyVlmt2SP0fMP1ojDEVq%2B9gAZY%3D&st=2026-09-18T14%3A44%3A01Z&se=2126-09-18T14%3A54%3A01Z&sp=r", "on": 1},
+  {"id": "muffin-chocoqueso", "cat": "secos", "nombre": "Muffin de chocolate con queso", "desc": "Muffin de chocolate con queso.", "sizes": {"n": 25}, "bind": {"n": "74441e14-c33c-42df-90ef-4d0c3b0751ed"}, "on": 1},
+  {"id": "muffin-mazapan", "cat": "secos", "nombre": "Muffin de mazapán", "desc": "Muffin de mazapán.", "sizes": {"n": 22}, "bind": {"n": "82fef64d-8531-4e58-9b2e-5e0062734474"}, "on": 0},
+  {"id": "muffin-platano", "cat": "secos", "nombre": "Muffin de plátano", "desc": "Muffin de plátano.", "sizes": {"n": 20}, "bind": {"n": "f0746877-2cde-4738-b750-4477ad0a9aa0"}, "on": 0},
+  {"id": "muffin-zanahoria", "cat": "secos", "nombre": "Muffin de zanahoria", "desc": "Muffin de zanahoria.", "sizes": {"n": 22}, "bind": {"n": "a8efe806-fd5d-4ea4-bf47-cc50664f367b"}, "on": 0},
+  {"id": "muffin-especial", "cat": "secos", "nombre": "Muffin especial", "desc": "Muffin especial.", "sizes": {"n": 30}, "bind": {"n": "a11043d4-6bf7-4a4b-8764-ace829eb315f"}, "on": 0},
+  {"id": "dona-sencilla", "cat": "secos", "nombre": "Dona sencilla", "desc": "Dona sencilla.", "sizes": {"n": 15}, "bind": {"n": "494586d0-779d-4528-81c0-049d52d02d17"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/494586d0-779d-4528-81c0-049d52d02d17?sv=2014-02-14&sr=b&sig=GSvKldphRAzsvlDwroyHT90N51eLaspzPY8GP9y%2Bwtk%3D&st=2026-09-18T14%3A40%3A58Z&se=2126-09-18T14%3A50%3A58Z&sp=r", "on": 1},
+  {"id": "dona-gourmet", "cat": "secos", "nombre": "Dona gourmet", "desc": "Dona gourmet.", "sizes": {"n": 30}, "bind": {"n": "03bed916-8c22-4284-9b03-2ef79d19cea6"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/03bed916-8c22-4284-9b03-2ef79d19cea6?sv=2014-02-14&sr=b&sig=7Kd6TZlUiGkvvVyw512wmHENo8Zxx8xWxXVNiJz5g44%3D&st=2026-09-18T14%3A39%3A20Z&se=2126-09-18T14%3A49%3A20Z&sp=r", "on": 1},
+  {"id": "dona-nieve", "cat": "secos", "nombre": "Dona con nieve", "desc": "Dona con nieve.", "sizes": {"n": 40}, "bind": {"n": "6ff87370-44bc-4c6c-8e37-279b440c3181"}, "on": 0},
+  {"id": "concha", "cat": "secos", "nombre": "Concha sencilla", "desc": "Concha sencilla.", "sizes": {"n": 15}, "bind": {"n": "2e620729-ca21-40f6-a79f-9b73add3676b"}, "on": 1},
+  {"id": "concha-rellena", "cat": "secos", "nombre": "Concha rellena", "desc": "Concha rellena.", "sizes": {"n": 25}, "bind": {"n": "2f3ccac2-8768-4353-8769-5368dfd1daeb"}, "on": 1},
+  {"id": "brownies-4", "cat": "secos", "nombre": "Caja de 4 brownies", "desc": "Caja con 4 brownies.", "sizes": {"n": 120}, "bind": {"n": "4a6dd08e-68cd-42fd-a472-d25c23f58c1b"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/4a6dd08e-68cd-42fd-a472-d25c23f58c1b?sv=2014-02-14&sr=b&sig=67a2f5iw6eoh9e6QsSzxdkf5pewgpZM5Kq%2F0x5Jcf1s%3D&st=2026-09-18T14%3A45%3A36Z&se=2126-09-18T14%3A55%3A36Z&sp=r", "on": 1},
+  {"id": "galleta-nuez", "cat": "secos", "nombre": "Galleta de nuez con topping", "desc": "Galleta de nuez con topping.", "sizes": {"n": 25}, "bind": {"n": "d8aa22f1-9782-4bcb-a266-12bc032a1ff0"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/d8aa22f1-9782-4bcb-a266-12bc032a1ff0?sv=2014-02-14&sr=b&sig=jiD69ALXj%2B%2FOHxQ6gYBByJ9MD8lQLqVgtXBqo2PV24g%3D&st=2026-09-18T14%3A12%3A54Z&se=2126-09-18T14%3A22%3A54Z&sp=r", "on": 1},
+  {"id": "galletas-avena", "cat": "secos", "nombre": "Paquete de 2 galletas de avena", "desc": "Paquete con 2 galletas de avena.", "sizes": {"n": 30}, "bind": {"n": "f2fa82d2-3967-4b16-ad57-06f40752bb6c"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/f2fa82d2-3967-4b16-ad57-06f40752bb6c?sv=2014-02-14&sr=b&sig=4uq3ItuNq0akWRwQPO1XxgHouAB1Vq6Y5RqPPPQMbhM%3D&st=2026-09-18T14%3A07%3A41Z&se=2126-09-18T14%3A17%3A41Z&sp=r", "on": 0},
+  {"id": "quequitos-6", "cat": "secos", "nombre": "Caja de 6 quequitos de mantequilla", "desc": "Caja con 6 quequitos de mantequilla.", "sizes": {"n": 90}, "bind": {"n": "b65065eb-3c54-42bf-9df1-acf0763182a1"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/b65065eb-3c54-42bf-9df1-acf0763182a1?sv=2014-02-14&sr=b&sig=T6pfSJ%2BYdY3YIJfbgxzycsZo8pw4ZkHYSEf5pNggZN4%3D&st=2026-09-18T14%3A46%3A23Z&se=2126-09-18T14%3A56%3A23Z&sp=r", "on": 1},
+  {"id": "quequito", "cat": "secos", "nombre": "Quequito", "desc": "Quequito de mantequilla.", "sizes": {"n": 15}, "bind": {"n": "c992efcd-6344-458a-b493-8ace36aa0c05"}, "on": 0},
+  {"id": "quequitos-gourmet", "cat": "secos", "nombre": "Caja de quequito gourmet", "desc": "Caja de quequitos gourmet.", "sizes": {"n": 120}, "bind": {"n": "ea34a9ab-85ff-4436-a26c-d2af5a17b77b"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/ea34a9ab-85ff-4436-a26c-d2af5a17b77b?sv=2014-02-14&sr=b&sig=oVF6IRAk1rnkW65vaNcp9djh1yD47VNyuaFvr4oSNhY%3D&st=2026-09-18T14%3A45%3A15Z&se=2126-09-18T14%3A55%3A15Z&sp=r", "on": 0},
+  {"id": "quequito-cheesecake", "cat": "secos", "nombre": "Quequito cheesecake", "desc": "Quequito de cheesecake.", "sizes": {"n": 30}, "bind": {"n": "760fe70b-267d-4b88-a0a1-094dceb42efe"}, "on": 0},
+  {"id": "quequito-mostachon", "cat": "secos", "nombre": "Quequito mostachón", "desc": "Quequito de mostachón.", "sizes": {"n": 30}, "bind": {"n": "6b5235f8-042d-4d4f-8d25-1ec875c87cfc"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/6b5235f8-042d-4d4f-8d25-1ec875c87cfc?sv=2014-02-14&sr=b&sig=4WKo00VPB2v7mEEYj2VBZXyVgtmMZ6HjNew1K%2BgjELw%3D&st=2026-09-18T14%3A47%3A01Z&se=2126-09-18T14%3A57%3A01Z&sp=r", "on": 0},
+  {"id": "cupcake", "cat": "secos", "nombre": "Cupcake", "desc": "Cupcake.", "sizes": {"n": 30}, "bind": {"n": "13b25558-dc04-43ee-a748-12dc7ce8250e"}, "on": 0},
+  {"id": "rol-individual", "cat": "secos", "nombre": "Rol de canela individual", "desc": "Rol de canela individual.", "sizes": {"n": 25}, "bind": {"n": "1fc010ee-2b64-4f3e-89d4-24e13df44284"}, "on": 0},
+  {"id": "rol-pequeno", "cat": "secos", "nombre": "Rol de canela pequeño", "desc": "Rol de canela pequeño.", "sizes": {"n": 15}, "bind": {"n": "f12b87ea-1631-4be9-87b6-c046b1d0f0e5"}, "on": 0},
+  {"id": "roles-charola", "cat": "secos", "nombre": "Charola de roles de canela", "desc": "Charola de roles de canela.", "sizes": {"n": 150}, "bind": {"n": "b7928017-bc25-4ec5-aabe-adbd9a9cf93a"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/b7928017-bc25-4ec5-aabe-adbd9a9cf93a?sv=2014-02-14&sr=b&sig=rObue%2FAjpYq6dQuKUxwmbFnzIcnrJWqHAbRGHA6cbvo%3D&st=2026-09-11T19%3A03%3A02Z&se=2126-09-11T19%3A13%3A02Z&sp=r", "on": 0},
+  {"id": "caja-reposteria", "cat": "secos", "nombre": "Caja de repostería", "desc": "Caja surtida de repostería.", "sizes": {"n": 180}, "bind": {"n": "32b4a650-a1c6-42d4-b6db-3fdb1fc8b644"}, "on": 0},
+  {"id": "barra-dulce", "cat": "secos", "nombre": "Barra dulce", "desc": "Barra dulce.", "sizes": {"n": 45}, "bind": {"n": "48534e04-2546-4b5b-bf09-abaa506bcb8c"}, "on": 0},
+  {"id": "barra-nutella", "cat": "secos", "nombre": "Barra de Nutella", "desc": "Barra de Nutella.", "sizes": {"n": 45}, "bind": {"n": "785ba019-0860-4ba2-87ca-9eed993626b5"}, "on": 0},
+  {"id": "barra-cajeta", "cat": "secos", "nombre": "Barra de cajeta", "desc": "Barra de cajeta.", "sizes": {"n": 45}, "bind": {"n": "447b787a-49e9-4a5f-9fec-7880cb157ba7"}, "on": 0},
+  {"id": "barra-pina", "cat": "secos", "nombre": "Barra de piña", "desc": "Barra de piña.", "sizes": {"n": 45}, "bind": {"n": "b953e564-3ae7-4b43-98cd-f24df8f2c842"}, "on": 0},
+  {"id": "empanada", "cat": "secos", "nombre": "Empanada", "desc": "Empanada.", "sizes": {"n": 20}, "bind": {"n": "5b8a5391-6437-4375-857f-9f09e221b4f8"}, "on": 1},
+  {"id": "fresas-crema", "cat": "postres", "nombre": "Fresas con crema", "desc": "Fresas con crema.", "sizes": {"n": 60}, "bind": {"n": "92f78a4b-7878-40b1-8049-c80c33914224"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/92f78a4b-7878-40b1-8049-c80c33914224?sv=2014-02-14&sr=b&sig=s0ZyW9mIgs7amDrPtw1h8cqbOTI3E%2Bi2GxAwFM4RjDQ%3D&st=2025-02-24T17%3A09%3A56Z&se=2125-02-24T17%3A19%3A56Z&sp=r", "on": 0},
+  {"id": "dulces-fresas", "cat": "postres", "nombre": "Dulces fresas", "desc": "Dulces fresas.", "sizes": {"n": 80}, "bind": {"n": "0ec880f2-551b-441a-8008-f52ffbb1d0e9"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/0ec880f2-551b-441a-8008-f52ffbb1d0e9?sv=2014-02-14&sr=b&sig=QAzR5ZP2gGyGOXpXr6oMl88U7iBwNSLvuiM5GRXQYoM%3D&st=2026-09-18T14%3A22%3A25Z&se=2126-09-18T14%3A32%3A25Z&sp=r", "on": 0},
+  {"id": "brownie-cuchareable", "cat": "postres", "nombre": "Brownie cuchareable", "desc": "Brownie para comer con cuchara.", "sizes": {"n": 60}, "bind": {"n": "69cf052d-e6bf-4a19-ba6b-5c5e736df7ea"}, "on": 0},
+  {"id": "brownie-regalo", "cat": "postres", "nombre": "Brownie de regalo", "desc": "Caja de brownie para regalo.", "sizes": {"n": 150}, "bind": {"n": "c55d4c09-656b-4bb3-b633-65c1776408b1"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/c55d4c09-656b-4bb3-b633-65c1776408b1?sv=2014-02-14&sr=b&sig=SHcojGR0WbQoHINCoC%2FBsRVEwqpwCb8yI0FgHIg1y3c%3D&st=2026-02-12T18%3A13%3A27Z&se=2126-02-12T18%3A23%3A27Z&sp=r", "on": 0},
+  {"id": "matilda", "cat": "postres", "nombre": "Matilda", "desc": "Postre Matilda.", "sizes": {"n": 70}, "bind": {"n": "bc8ff339-374d-491c-8e87-c040229a530c"}, "on": 0},
+  {"id": "payleta", "cat": "postres", "nombre": "Payleta", "desc": "Payleta.", "sizes": {"n": 35}, "bind": {"n": "800200db-9d24-4645-876d-9ed141b99a12"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/800200db-9d24-4645-876d-9ed141b99a12?sv=2014-02-14&sr=b&sig=UC10ADBul%2Baqf3mFI3trNubHVIu%2B9FJ7wRm0zAgp66k%3D&st=2026-11-09T18%3A44%3A56Z&se=2126-11-09T18%3A54%3A56Z&sp=r", "on": 0},
+  {"id": "carlota", "cat": "postres", "nombre": "Carlota", "desc": "Carlota.", "sizes": {"n": 90}, "bind": {"n": "5d092ef4-24d9-4a52-aad8-208c4b303d46"}, "on": 0},
+  {"id": "mostachon", "cat": "postres", "nombre": "Mostachón", "desc": "Mostachón.", "sizes": {"n": 120}, "bind": {"n": "0cf80c6a-2c76-4cfb-b5cd-83a2b56c63dd"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/0cf80c6a-2c76-4cfb-b5cd-83a2b56c63dd?sv=2014-02-14&sr=b&sig=W2oDCJGHiT7I0YcrgvS%2BxOH9j%2BRr%2BvfyaMQPnXOtsBI%3D&st=2026-09-18T14%3A17%3A01Z&se=2126-09-18T14%3A27%3A01Z&sp=r", "on": 0},
+  {"id": "nuez-garapinada", "cat": "postres", "nombre": "Nuez garapiñada en bolsita", "desc": "Nuez garapiñada en bolsita.", "sizes": {"n": 40}, "bind": {"n": "dfa40a5c-b4e7-458f-b563-c1f68f15c480"}, "on": 0},
+  {"id": "minipastel", "cat": "postres", "nombre": "Minipastel", "desc": "Minipastel.", "sizes": {"n": 90}, "bind": {"n": "0613e387-0854-440c-8111-7189f7f7ebe7"}, "on": 0},
+  {"id": "mango", "cat": "temporada", "nombre": "Mango", "desc": "Pastel de mango.", "sizes": {"c": 70, "m": 240, "g": 380}, "bind": {"c": "faf6561f-a92f-4b0d-8089-142c2b997bde", "m": "cc33b6f3-7b38-4caf-966f-643311118268", "g": "1730b6c7-bb58-49ad-b9cf-fadf9b700b84"}, "look": "frutas", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/1730b6c7-bb58-49ad-b9cf-fadf9b700b84?sv=2014-02-14&sr=b&sig=BhmQ2SNn3Qwo%2BivURp0SdAaCtS6KOjblqT%2FJhDWAhxs%3D&st=2026-09-18T14%3A24%3A01Z&se=2126-09-18T14%3A34%3A01Z&sp=r", "on": 0},
+  {"id": "mango-especial", "cat": "temporada", "nombre": "Mango Especial", "desc": "Pastel de mango especial.", "sizes": {"g": 420}, "bind": {"g": "2bc53f99-f92f-498a-ad56-60b6c7ec81b4"}, "look": "frutas", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/2bc53f99-f92f-498a-ad56-60b6c7ec81b4?sv=2014-02-14&sr=b&sig=TT%2Bv50qcfNNhUUN8ltP48dPqTM1jeMFks%2Be%2F%2FfqaD6s%3D&st=2026-09-18T14%3A29%3A49Z&se=2126-09-18T14%3A39%3A49Z&sp=r", "on": 0},
+  {"id": "rollo-mango", "cat": "temporada", "nombre": "Rollo de Mango", "desc": "Pan de vainilla con betún de queso y mango.", "sizes": {"g": 290}, "bind": {"g": "0e80227b-a973-488a-b19c-46577b2cd2ad"}, "look": "rollo", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/0e80227b-a973-488a-b19c-46577b2cd2ad?sv=2014-02-14&sr=b&sig=9dZS8%2BY7MbgRnm7y3kVqwVdpscTWb3g6noz5Eiw3O%2FU%3D&st=2026-10-02T15%3A34%3A39Z&se=2126-10-02T15%3A44%3A39Z&sp=r", "on": 0, "noMsg": 1},
+  {"id": "sanvalentin", "cat": "temporada", "nombre": "Pastel de San Valentín", "desc": "Relleno de dulce de leche, con betún de queso crema, mantequilla o crema batida, y pan de vainilla o chocolate a tu elección.", "sizes": {"c": 120, "m": 290}, "bind": {"c": "82cbffcc-6de8-464a-89f8-96172d56850d", "m": "9cd5924e-6687-4734-9898-9d91879372b3"}, "look": "tresleches", "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/9cd5924e-6687-4734-9898-9d91879372b3?sv=2014-02-14&sr=b&sig=%2Bet60ConYQea7P5CodVMTGP%2FsEqHmiGcYM5bRnvp96U%3D&st=2026-02-11T15%3A06%3A49Z&se=2126-02-11T15%3A16%3A49Z&sp=r", "on": 0},
+  {"id": "corazon", "cat": "temporada", "nombre": "Corazón chico", "desc": "Pastel en forma de corazón.", "sizes": {"c": 90}, "bind": {"c": "5be39650-b6ef-40c9-89dd-7b86020c263a"}, "look": "tresleches", "on": 0},
+  {"id": "cupcakes-sv", "cat": "temporada", "nombre": "Cupcakes San Valentín", "desc": "Caja de cupcakes de San Valentín.", "sizes": {"n": 120}, "bind": {"n": "58d048d7-503e-49cd-bc04-005f23b54488"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/58d048d7-503e-49cd-bc04-005f23b54488?sv=2014-02-14&sr=b&sig=ACb1z5vDpqh6hj899KpkQGYcny2aYGIIbiFyddO5Vdk%3D&st=2026-02-11T15%3A08%3A11Z&se=2126-02-11T15%3A18%3A11Z&sp=r", "on": 0},
+  {"id": "mini-14feb", "cat": "temporada", "nombre": "Mini pastelito 14 de febrero", "desc": "Mini pastelito de San Valentín.", "sizes": {"n": 60}, "bind": {"n": "39c4cfb5-6d7f-495b-abc4-195e82ab954f"}, "on": 0},
+  {"id": "quequito-14feb", "cat": "temporada", "nombre": "Quequito 14 de febrero", "desc": "Quequito de San Valentín.", "sizes": {"n": 30}, "bind": {"n": "2035a831-1247-4f70-bb9e-111664ed527e"}, "on": 0},
+  {"id": "volcan-lotus", "cat": "temporada", "nombre": "Volcán Lotus San Valentín", "desc": "Volcán Lotus de San Valentín.", "sizes": {"n": 80}, "bind": {"n": "27a30889-d1dd-4304-918a-edfa596da7f7"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/27a30889-d1dd-4304-918a-edfa596da7f7?sv=2014-02-14&sr=b&sig=cGKDQ%2BC3G8cRQoZkk8Jfdo9%2B3jDzz7viDzJiL%2FfWfrs%3D&st=2026-10-02T15%3A36%3A41Z&se=2126-10-02T15%3A46%3A41Z&sp=r", "on": 0},
+  {"id": "pan-muerto", "cat": "temporada", "nombre": "Pan de muerto mediano", "desc": "Pan de muerto mediano.", "sizes": {"n": 90}, "bind": {"n": "13743e89-9024-4e3e-9712-087e17d64c86"}, "on": 0},
+  {"id": "pan-muerto-relleno", "cat": "temporada", "nombre": "Pan de muerto relleno", "desc": "Pan de muerto relleno.", "sizes": {"n": 110}, "bind": {"n": "e33757c8-053f-4dfc-b82a-5215a76fb7e8"}, "foto": "https://bindfiles.blob.core.windows.net/87305/ProductImageDirectory/e33757c8-053f-4dfc-b82a-5215a76fb7e8?sv=2014-02-14&sr=b&sig=AZrbvCdciK7pGbxEG9ISgzcJJGKwH0XZ%2FpH6gI8DDV4%3D&st=2026-09-10T18%3A57%3A00Z&se=2126-09-10T19%3A07%3A00Z&sp=r", "on": 0},
+  {"id": "pan-muerto-sencillo", "cat": "temporada", "nombre": "Pan de muerto sencillo", "desc": "Pan de muerto sencillo.", "sizes": {"n": 45}, "bind": {"n": "83c310f4-ee46-4269-a8dd-83d8f46380a2"}, "on": 0},
+  {"id": "rosca", "cat": "temporada", "nombre": "Rosca de Reyes grande", "desc": "Rosca de Reyes grande.", "sizes": {"n": 450}, "bind": {"n": "cf5e737a-ed2b-420c-a8e6-97b78704a103"}, "on": 0},
+  {"id": "rosca-duo", "cat": "temporada", "nombre": "Rosca Dúo", "desc": "Rosca Dúo.", "sizes": {"n": 350}, "bind": {"n": "2f2fa926-a979-462c-baa2-1573e17943fb"}, "on": 0},
+  {"id": "dulce-mexico", "cat": "temporada", "nombre": "Dulce México", "desc": "Postre de fiestas patrias.", "sizes": {"n": 60}, "bind": {"n": "060c667c-cf48-4c2b-b80f-2f7e3dd29586"}, "on": 0},
+  {"id": "mas-mexicano", "cat": "temporada", "nombre": "El más mexicano", "desc": "Pastel de fiestas patrias.", "sizes": {"n": 380}, "bind": {"n": "18b15fd2-69d9-45ea-8be3-4954972dab67"}, "on": 0}
+];
+var COMPLEMENTOS_BIND=[
+  {"id": "x-vela-magica", "nombre": "Vela mágica", "p": 25, "ico": "✨", "why": "Vela mágica sin aroma", "bind": "96141d6e-2385-4c34-bbf5-7bd399d8faae", "cake": true},
+  {"id": "x-velas-espiral", "nombre": "Caja de velas en espiral", "p": 30, "ico": "🕯️", "why": "Para soplar y pedir el deseo", "bind": "cbc12803-38ca-4308-872e-6ac89a044131", "cake": true},
+  {"id": "x-topper", "nombre": "Topper para pastel", "p": 60, "ico": "🎉", "why": "Se coloca sobre el pastel", "bind": "54afd9e6-b373-4070-94e6-1120612cb807", "cake": true, "det": "¿Qué dice el topper?", "pre": "Topper: "},
+  {"id": "x-topper-abuelos", "nombre": "Topper Día de los Abuelos", "p": 60, "ico": "👵", "why": "Para festejar a los abuelos", "bind": "ee597369-1a7a-47b2-85a4-1b0f2fa93de2", "cake": true},
+  {"id": "x-kit", "nombre": "Kit desechable (10 personas)", "p": 35, "ico": "🍽️", "why": "Platos y cubiertos para servir", "bind": "6ceeb401-86d4-4f60-a7d6-713a8b9e6e07", "cake": true},
+  {"id": "x-bolsa", "nombre": "Bolsa de regalo", "p": 15, "ico": "🛍️", "why": "Para entregarlo como regalo", "bind": "17aff7f7-8d1b-4612-8013-0e704697255d"}
 ];
 var SUCURSALES=[
   {id:'nava-centro',ci:'nava',nombre:'Nava Centro',dir:'Morelos y Ramos Arizpe, Zona Centro, 26170 Nava'},
@@ -702,9 +788,9 @@ var SUCURSALES=[
 ];
 function prod(id){for(var i=0;i<CATALOGO.length;i++)if(CATALOGO[i].id===id)return CATALOGO[i];return null}
 function suc(id){for(var i=0;i<SUCURSALES.length;i++)if(SUCURSALES[i].id===id)return SUCURSALES[i];return SUCURSALES[0]}
-var PERSONAS={m:'12 a 15 personas',g:'20 a 25 personas'};
-var PERSONAS_ESP={'rollo|g':'10 a 12 personas','chtortuga|g':'12 a 16 personas','chblueberry|g':'12 a 16 personas'};
-function personas(pid,size){var p=prod(pid);if(!p)return '';if(p.cat==='individuales')return '1 persona';if(p.cat==='secos')return '1 pieza';return PERSONAS_ESP[pid+'|'+size]||PERSONAS[size]||''}
+var PERSONAS={c:'1 persona',m:'20 personas',g:'30 personas'};
+var PERSONAS_ESP={'rollo-mango|g':'10 a 12 personas','sanvalentin|c':'4 personas','sanvalentin|m':'20 personas'};
+function personas(pid,size){var p=prod(pid);if(!p)return '';if(p.cat==='individuales')return '1 persona';if(size==='n')return '';if(PERSONAS_ESP[pid+'|'+size])return PERSONAS_ESP[pid+'|'+size];if(p.cat==='cheesecakes')return '12 a 16 personas';return PERSONAS_ESP[pid+'|'+size]||PERSONAS[size]||''}
 function servHTML(pid,size){var t=personas(pid,size);return t?'<em class="serv">'+t+'</em>':''}
 function isCake(p){return p&&(p.sizes.m||p.sizes.g)}
 
@@ -728,6 +814,7 @@ function shade(hex,amt){var n=parseInt(hex.slice(1),16),r=(n>>16)&255,g=(n>>8)&2
   function f(c){return Math.max(0,Math.min(255,Math.round(amt<0?c*(1+amt):c+(255-c)*amt)))}
   return '#'+[f(r),f(g),f(b)].map(function(c){return c.toString(16).padStart(2,'0')}).join('')}
 function lum(hex){var n=parseInt(hex.slice(1),16);return (0.299*((n>>16)&255)+0.587*((n>>8)&255)+0.114*(n&255))/255}
+function lookOf(p,pid){var b=p&&p.base?prod(p.base):null;return LOOK[p&&p.look]||(b&&(LOOK[b.look]||LOOK[b.id]))||LOOK[pid]||LOOK.tresleches}
 var LOOK={
   emperador:{cob:'#F6E6CF',side:'#F2DFC2',drizzle:'#B87A34',top:['nuez']},
   nevado:{cob:'#FCFAF4',side:'#F7F2E6',top:['coco','limon'],flakes:'#E3DBC8'},
@@ -796,7 +883,7 @@ function drawProduct(pid,size,msg){
   svg.push('<defs><linearGradient id="'+id+'s" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".12"/><stop offset=".38" stop-color="#fff" stop-opacity=".14"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient></defs>');
   var plateY=232;
   if(p.cat==='secos'){
-    var dome={'muffin-nuez':'#D9A060','muffin-chispas':'#D49A5A','muffin-fresa':'#E3AE7A','muffin-frutosrojos':'#DDA46C'}[pid],bits={'muffin-nuez':'#7A4A22','muffin-chispas':'#3A2018','muffin-fresa':'#E2557E','muffin-frutosrojos':'#8E1F3A'}[pid];
+    var dome={'muffin-nuez':'#D9A060','muffin-chispas':'#D49A5A','muffin-nutella':'#B7834F','muffin-dulceleche':'#DDA46C','muffin-chocoqueso':'#7A4A32'}[pid]||'#D9A060',bits={'muffin-nuez':'#7A4A22','muffin-chispas':'#3A2018','muffin-nutella':'#4A2618','muffin-dulceleche':'#A8641F','muffin-chocoqueso':'#F4E4C3'}[pid]||'#7A4A22';
     svg.push('<ellipse cx="160" cy="'+plateY+'" rx="80" ry="10" style="fill:var(--plate)"/>');
     svg.push('<path d="M112 150 L208 150 L196 228 L124 228 Z" fill="#F7A9C4"/>');
     for(var k=0;k<7;k++){var xx=118+k*14;svg.push('<line x1="'+xx+'" y1="152" x2="'+(126+k*11.4).toFixed(1)+'" y2="226" stroke="#E07CA2" stroke-width="2"/>')}
@@ -805,7 +892,7 @@ function drawProduct(pid,size,msg){
     for(var b=0;b<16;b++){var bx=114+rand()*92,by=100+rand()*50;svg.push('<ellipse cx="'+bx.toFixed(1)+'" cy="'+by.toFixed(1)+'" rx="4" ry="3" fill="'+bits+'"/>')}
     return wrapSvg(svg);
   }
-  var lk=LOOK[p.base||pid]||LOOK.tresleches;
+  var lk=lookOf(p,pid);
   if(p.cat==='individuales'){
     svg.push('<polygon points="70,212 250,212 282,182 102,182" fill="#E8D9DE"/><polygon points="70,212 250,212 250,220 70,220" fill="#D7C3CA"/>');
     var fx=96,fy=176,fw=128,fh=48,dx=26,dy=-24;
@@ -877,15 +964,20 @@ if(!state.cfg.frescura||!state.cfg.frescura.grupos)state.cfg.frescura=frescuraDe
 if(!Array.isArray(state.cfg.ofertas))state.cfg.ofertas=[];
 if(state.lseq==null)state.lseq=1;
 if(!state.vitrina)state.vitrina=demoVitrina();
+if(!state.cfg.catalogo)state.cfg.catalogo={};
+/* Catálogo: qué se vende en línea y a qué precio (lo cambia el dueño en Panel > Catálogo) */
+CATALOGO.forEach(function(p){p.sizes0=JSON.parse(JSON.stringify(p.sizes))});
+function applyCatalogo(){var O=state.cfg.catalogo||{};CATALOGO.forEach(function(p){var o=O[p.id]||{};p.vis=o.v==null?!!p.on:!!o.v;Object.keys(p.sizes0).forEach(function(k){p.sizes[k]=o.p&&+o.p[k]>0?+o.p[k]:p.sizes0[k]})})}
+applyCatalogo();
 
 /* Descuentos por frescura: entre más días lleva un pastel en la vitrina, más descuento.
    El día 0 es el día en que se horneó. A partir del día de retiro ya no se vende en línea. */
 var GRUPOS=[
-  {id:'pasteles',nombre:'Pasteles de betún',det:'Vainilla, chocolate y especiales',cats:['vainilla','chocolate','especiales']},
-  {id:'humedos',nombre:'Húmedos y tres leches',det:'Tres Leches, Nutella, Oreo, Frutas, Piña Colada',cats:['humedos']},
-  {id:'cheesecakes',nombre:'Cheesecakes',det:'Tortuga y Blueberry',cats:['cheesecakes']},
-  {id:'individuales',nombre:'Charolitas individuales',det:'Todas las charolitas',cats:['individuales']},
-  {id:'muffins',nombre:'Muffins',det:'Todos los muffins',cats:['secos']}
+  {id:'pasteles',nombre:'Pasteles de betún',det:'De betún, postres y temporada',cats:['betun','postres','temporada']},
+  {id:'humedos',nombre:'Húmedos y tres leches',det:'Tres Leches, Fruta, Nutella, Oreo, Piña, Nevado',cats:['humedos']},
+  {id:'cheesecakes',nombre:'Cheesecakes',det:'Todos los cheesecakes',cats:['cheesecakes']},
+  {id:'individuales',nombre:'Charolas y rebanadas',det:'Charolas individuales y rebanadas',cats:['individuales']},
+  {id:'muffins',nombre:'Panadería',det:'Muffins, donas, conchas y más',cats:['secos']}
 ];
 function frescuraDef(){return {on:true,grupos:{
   pasteles:{vida:4,t:[{d:1,p:10},{d:2,p:20},{d:3,p:35}]},
@@ -906,7 +998,7 @@ function frescura(pid,h){
 }
 function demoVitrina(){
   var v={},hoy=hoyISO();
-  var base=[['tortuga','g',1,2],['tresleches','m',2,1],['emperador','g',0,3],['chtortuga','g',3,1],['nutella','m',1,2],['ind-nutella','c',1,6],['ind-tresleches','c',2,4],['muffin-nuez','n',2,8],['pinacolada','g',0,2],['snickers','m',3,1]];
+  var base=[['tortuga','g',1,2],['tresleches','m',2,1],['emperador','g',0,3],['chtortuga','g',3,1],['nutella','m',1,2],['ind-nutella','n',1,6],['ind-tortuga','n',2,4],['muffin-nuez','n',2,8],['pinacolada','g',0,2],['snickers','m',3,1]];
   SUCURSALES.forEach(function(s,si){v[s.id]=base.filter(function(x,i){return (i+si)%3!==0}).map(function(x){return {id:'L'+(state.lseq++),pid:x[0],size:x[1],horneado:shiftDay(hoy,-x[2]),qty:x[3]}})});
   return v;
 }
@@ -940,7 +1032,7 @@ function ofRest(o){return o.unidades>0?Math.max(0,o.unidades-ofVendidos(o.id)-in
 function ofPuede(o){return ofEstado(o)==='activa'&&ofRest(o)>0&&(!o.max||inCartOf(o.id)<o.max)}
 function ofSucOk(o){return !o.suc||!sel.suc||o.suc===sel.suc}
 function ofertaPara(pid,size){if(sel.vitrina||isComp(pid)||isCustom(pid))return null;var best=null,now=Date.now();(state.cfg.ofertas||[]).forEach(function(o){if(ofEstado(o,now)==='activa'&&ofSucOk(o)&&ofMatch(o,pid,size)&&(!best||o.pct>best.pct))best=o});return best}
-var OF_CAT={vainilla:'Todos los pasteles de vainilla',chocolate:'Todos los pasteles de chocolate',humedos:'Todos los pasteles húmedos',cheesecakes:'Todos los cheesecakes',especiales:'Todos los especiales',individuales:'Todas las charolitas',secos:'Todos los muffins'};
+var OF_CAT={humedos:'Todos los pasteles húmedos',betun:'Todos los pasteles de betún',cheesecakes:'Todos los cheesecakes',individuales:'Todas las charolas y rebanadas',secos:'Toda la panadería',postres:'Todos los postres',temporada:'Todo lo de temporada'};
 function ofNombre(o){if(isCatOf(o))return OF_CAT[o.pid.slice(4)]||'Varios productos';var p=prod(o.pid);return p?p.nombre+(o.size&&isCake(p)?' '+SIZE_LABEL[o.size].toLowerCase():''):''}
 function ofMuestra(o){var p=isCatOf(o)?CATALOGO.filter(function(x){return x.cat===o.pid.slice(4)})[0]:prod(o.pid);if(!p)return null;var sz=o.size||Object.keys(p.sizes)[0];return {p:p,size:sz,base:p.sizes[sz],precio:Math.round(p.sizes[sz]*(1-o.pct/100))}}
 function hms(ms){ms=Math.max(0,ms);var t=Math.floor(ms/1000),h=Math.floor(t/3600);return pad(h,2)+':'+pad(Math.floor(t%3600/60),2)+':'+pad(t%60,2)}
@@ -969,7 +1061,7 @@ function dbJSON(path,opt){opt=opt||{};var h={'Content-Type':'application/json'};
 function snapKey(s,f){return s+'|'+f}
 function snapOf(s,f){if(!DB.on)return null;var k=snapKey(s,f);if(!DB.snap[k]){ensureSnap(s,f);return {cupos:{},usados:{},pend:true}}return DB.snap[k]}
 function editingIn(el){var a=document.activeElement;return !!(el&&a&&el.contains(a)&&/INPUT|SELECT|TEXTAREA/.test(a.tagName))}
-function applyCfg(c){if(!c)return;if(c.frescura&&c.frescura.grupos)state.cfg.frescura=c.frescura;if(Array.isArray(c.ofertas))state.cfg.ofertas=c.ofertas;['minLead','sugLead','payMin','customLead','hoyHasta'].forEach(function(k){if(c[k]!=null)state.cfg[k]=c[k]});['barra','envio'].forEach(function(k){if(c[k])state.cfg[k]=Object.assign({},state.cfg[k],c[k])});if(Array.isArray(c.paquete))state.cfg.paquete=c.paquete;save()}
+function applyCfg(c){if(!c)return;if(c.catalogo&&typeof c.catalogo==='object'){state.cfg.catalogo=c.catalogo;applyCatalogo()}if(c.frescura&&c.frescura.grupos)state.cfg.frescura=c.frescura;if(Array.isArray(c.ofertas))state.cfg.ofertas=c.ofertas;['minLead','sugLead','payMin','customLead','hoyHasta'].forEach(function(k){if(c[k]!=null)state.cfg[k]=c[k]});['barra','envio'].forEach(function(k){if(c[k])state.cfg[k]=Object.assign({},state.cfg[k],c[k])});if(Array.isArray(c.paquete))state.cfg.paquete=c.paquete;save()}
 function setSnap(s,f,j){DB.snap[snapKey(s,f)]={cupos:j.cupos||{},usados:j.usados||{},t:Date.now()};if(Array.isArray(j.vitrina)){DB.vit[s]=j.vitrina;DB.vitT=Date.now()}if(j.ofertas)DB.ofSold=j.ofertas;if(j.config)applyCfg(j.config)}
 function dbLoad(s,f){var k=snapKey(s,f);DB.loading[k]=true;
   return dbJSON('/tienda/estado?sucursal='+encodeURIComponent(s)+'&fecha='+encodeURIComponent(f)).then(function(j){DB.loading[k]=false;setSnap(s,f,j);DB.lastSync=Date.now();return j},function(e){DB.loading[k]=false;throw e})}
@@ -1047,16 +1139,7 @@ function customDetail(d){
 }
 
 /* Complementos: precios de ejemplo */
-var COMPLEMENTOS=[
-  {id:'x-velas',nombre:'Velas de colores (12 piezas)',p:25,ico:'🕯️',why:'Para soplar y pedir el deseo',cake:true},
-  {id:'x-numero',nombre:'Vela con número',p:30,ico:'🎂',why:'Con la edad del festejado',cake:true,det:'¿Qué número?',pre:'Número: '},
-  {id:'x-chisperos',nombre:'Chisperos (4 piezas)',p:35,ico:'✨',why:'Para el momento de las mañanitas',cake:true},
-  {id:'x-platos',nombre:'Platos, tenedores y servilletas (10 personas)',p:45,ico:'🍽️',why:'Para servir sin preocuparte',cake:true},
-  {id:'x-leche',nombre:'Leche entera, 1 litro',p:32,ico:'🥛',why:'El acompañante clásico del pastel'},
-  {id:'x-tarjeta',nombre:'Tarjeta de felicitación',p:25,ico:'💌',why:'La escribimos con tu mensaje',cake:true,det:'¿Qué dice la tarjeta?',pre:'Tarjeta: '},
-  {id:'x-globo',nombre:'Globo metálico de cumpleaños',p:60,ico:'🎈',why:'Para completar la sorpresa',cake:true},
-  {id:'x-letrero',nombre:'Letrero "Feliz cumpleaños"',p:45,ico:'🎉',why:'Se coloca sobre el pastel',cake:true}
-];
+var COMPLEMENTOS=COMPLEMENTOS_BIND;
 function isComp(pid){return pid.indexOf('x-')===0}
 function isCustom(pid){return pid==='custom'}
 function isTracked(it){return !isComp(it.pid)}
@@ -1077,7 +1160,7 @@ function itemLines(it){
 }
 
 /* Tienda */
-var sel={suc:null,fecha:null,vitrina:false,modo:'sucursal',ciudad:'nava',dir:{calle:'',colonia:'',ref:'',horario:'13:00 a 16:00'}},cart=[],cliente={nombre:'',telefono:''},screen='tienda',curRes=null,catSel='vainilla',extrasList=[];
+var sel={suc:null,fecha:null,vitrina:false,modo:'sucursal',ciudad:'nava',dir:{calle:'',colonia:'',ref:'',horario:'13:00 a 16:00'}},cart=[],cliente={nombre:'',telefono:''},screen='tienda',curRes=null,catSel='humedos',extrasList=[];
 var wz=1,wzDir=1,wzAnim=false,lastOfSig='',lastAddMsg='';
 var design={forma:'redondo',pisos:[{tam:20,sabor:'vainilla',relleno:'cajeta'}],cobertura:'queso',color:'blanco',deco:['flores'],qty:1,mensajes:[''],idea:'',foto:null};
 function firstDate(){return addDays(Math.max(0,+state.cfg.minLead||0))}
@@ -1113,7 +1196,7 @@ function sumHTML(T){
 function packHTML(){
   if(catSel!=='individuales'&&catSel!=='secos')return '';
   var T=totals(),tiers=(state.cfg.paquete||[]).filter(function(x){return x.n>0}).sort(function(a,b){return a.n-b.n}),next=tiers.filter(function(x){return x.n>T.indQ})[0];
-  return '<div class="pack"><b>Arma tu paquete y ahorra</b><span>'+tiers.map(function(x){return x.n+' piezas: '+x.p+'%'}).join(' · ')+'</span><small>Combina charolitas y muffins. Llevas '+T.indQ+(T.indQ===1?' pieza':' piezas')+(next?'; te faltan '+(next.n-T.indQ)+' para '+next.p+'% de descuento.':'; ya tienes el mayor descuento.')+'</small></div>';
+  return '<div class="pack"><b>Arma tu paquete y ahorra</b><span>'+tiers.map(function(x){return x.n+' piezas: '+x.p+'%'}).join(' · ')+'</span><small>Combina charolas, rebanadas y panadería. Llevas '+T.indQ+(T.indQ===1?' pieza':' piezas')+(next?'; te faltan '+(next.n-T.indQ)+' para '+next.p+'% de descuento.':'; ya tienes el mayor descuento.')+'</small></div>';
 }
 function mapQ(s){return 'Pastelería Mr. Cake, '+s.dir+', Coahuila'}
 function entregaTxt(r){var e=r.entrega||{},f=fFecha.format(dateOf(r.fecha));if(e.modo==='domicilio')return 'Te lo llevamos a '+e.calle+(e.colonia?', '+e.colonia:'')+', '+e.ciudad+', el '+f+', de '+e.horario;var s=suc(r.sucursal);return 'Recoges en Sucursal '+s.nombre+' ('+s.dir+'), el '+f}
@@ -1242,14 +1325,15 @@ function stepEnt(){
   return h;
 }
 /* Paso 3: productos */
-function fixCat(){if(sel.vitrina){if(catSel!=='vitrina'&&catSel!=='complementos')catSel='vitrina'}else if(catSel==='vitrina')catSel='vainilla'}
+function catsVisibles(){return CATS.filter(function(c){return CATALOGO.some(function(p){return p.cat===c.id&&p.vis})})}
+function fixCat(){if(sel.vitrina){if(catSel!=='vitrina'&&catSel!=='complementos')catSel='vitrina'}else if(catSel==='vitrina'||(catSel!=='personalizado'&&catSel!=='complementos'&&!catsVisibles().some(function(c){return c.id===catSel}))){var v=catsVisibles();catSel=v.length?v[0].id:'complementos'}}
 function stepProd(){
   fixCat();
   var chips=sel.vitrina?[{id:'vitrina',nombre:'Vitrina de hoy'},{id:'complementos',nombre:'Velas y complementos'}].map(function(c){return '<button class="cat" data-cat="'+c.id+'" aria-pressed="'+(catSel===c.id)+'">'+esc(c.nombre)+'</button>'}).join(''):catChips();
   return '<div class="cats" role="group" aria-label="Categorías">'+chips+'</div><div id="grid">'+gridHTML()+'</div>';
 }
 function catChips(){
-  var all=[{id:'personalizado',nombre:'Diseña tu pastel'}].concat(CATS).concat([{id:'complementos',nombre:'Velas y complementos'}]);
+  var all=[{id:'personalizado',nombre:'Diseña tu pastel'}].concat(catsVisibles()).concat([{id:'complementos',nombre:'Velas y complementos'}]);
   return all.map(function(c){return '<button class="cat'+(c.id==='personalizado'?' cat-hi':'')+'" data-cat="'+c.id+'" aria-pressed="'+(catSel===c.id)+'">'+esc(c.nombre)+'</button>'}).join('');
 }
 function sizeBtn(p,s){
@@ -1263,7 +1347,7 @@ function gridHTML(){
   if(catSel==='personalizado')return designerHTML();
   if(catSel==='complementos')return '<div class="grid">'+COMPLEMENTOS.map(function(c){var n=inCart(c.id,'u');
     return '<article class="prod"><div class="thumb ico" aria-hidden="true">'+c.ico+'</div><h3>'+esc(c.nombre)+'</h3><p>'+esc(c.why)+'</p><div class="sizes"><button class="size" data-add="'+c.id+'" data-size="u"><span>'+(n?'Agregar otro<small>Llevas '+n+'</small>':'Agregar')+'</span><b>'+$m(c.p)+'</b></button></div></article>'}).join('')+'</div>';
-  return packHTML()+'<div class="grid">'+CATALOGO.filter(function(p){return p.cat===catSel}).map(function(p){
+  return packHTML()+'<div class="grid">'+CATALOGO.filter(function(p){return p.cat===catSel&&p.vis}).map(function(p){
     var sizes=Object.keys(p.sizes),anyOf=sizes.some(function(s){return !!ofertaPara(p.id,s)});
     return '<article class="prod"><button class="thumb thumb-btn" data-detail="'+p.id+'" aria-label="Ver detalles e ingredientes de '+esc(p.nombre)+'">'+photoHTML(p.id,false,drawProduct(p.id,sizes[sizes.length-1],''),p.nombre)+'</button><h3>'+esc(p.nombre)+'</h3>'+(anyOf?'<span class="flag fl-flag">'+BOLT+'Oferta relámpago</span>':(p.top?'<span class="flag">Más vendido</span>':''))+'<p>'+esc(p.desc)+'</p><button class="linkbtn more" data-detail="'+p.id+'">Ver ingredientes</button><div class="sizes">'+sizes.map(function(s){return sizeBtn(p,s)}).join('')+'</div></article>';
   }).join('')+'</div>';
@@ -1432,9 +1516,9 @@ function redrawDesigner(focusSel){var g=$('#grid');if(!g)return;g.innerHTML=desi
 /* Complementos sugeridos antes de pagar */
 function buildExtras(){
   var hasCake=cart.some(function(it){return wantsMsg(it)}),out=[];
-  COMPLEMENTOS.forEach(function(c){if(c.cake&&!hasCake)return;if(c.id==='x-letrero'&&cart.some(function(it){return isCustom(it.pid)&&it.custom.deco.indexOf('topper')>-1}))return;if(inCart(c.id,'u'))return;out.push({pid:c.id,size:'u'})});
+  COMPLEMENTOS.forEach(function(c){if(c.cake&&!hasCake)return;if(c.id==='x-topper'&&cart.some(function(it){return isCustom(it.pid)&&it.custom.deco.indexOf('topper')>-1}))return;if(inCart(c.id,'u'))return;out.push({pid:c.id,size:'u'})});
   if(sel.vitrina)vitrinaVenta(sel.suc).filter(function(l){var g=grupoDe(l.pid);return (g==='individuales'||g==='muffins')&&!inLote(l.id)}).slice(0,2).forEach(function(l){out.splice(3,0,{pid:l.pid,size:l.size,lote:l.id,why:'De vitrina: '+edadTxt(l.edad).toLowerCase()+(l.pct?', −'+l.pct+'%':'')})});
-  else [['muffin-chispas','n','Para el desayuno del día siguiente'],['ind-tresleches','c','Para alguien que no pueda ir a la fiesta']].forEach(function(x){if(!inCart(x[0],x[1])&&disponible(sel.suc,sel.fecha,x[0],x[1])>0)out.splice(4,0,{pid:x[0],size:x[1],why:x[2]})});
+  else [['muffin-chispas','n','Para el desayuno del día siguiente'],['ind-nutella','n','Para alguien que no pueda ir a la fiesta']].forEach(function(x){if(!inCart(x[0],x[1])&&disponible(sel.suc,sel.fecha,x[0],x[1])>0)out.splice(4,0,{pid:x[0],size:x[1],why:x[2]})});
   return out.slice(0,7);
 }
 function xcard(x){
@@ -1741,7 +1825,9 @@ function sliceSVG(pid){
 /* Fotos reales: carpeta img/ junto a tienda.html. Si una foto falta, se muestra el dibujo. */
 var IMG='img/';
 function photoName(pid,slice){var p=prod(pid);if(!p)return null;if(p.cat==='secos')return pid;if(p.base)return p.base+'-rebanada';return pid+(slice?'-rebanada':'')}
-function photoHTML(pid,slice,fallback,alt){var n=photoName(pid,slice);if(!n)return fallback||'';return '<span class="ph-wrap"><img class="photo" src="'+IMG+n+'.jpg" alt="'+esc(alt||'')+'" loading="lazy" decoding="async" onerror="this.parentNode.classList.add(\'nofoto\')"><span class="ph-fb">'+(fallback||'')+'</span></span>'}
+/* Primero la foto real de Bind; si no hay o no carga, la foto de la carpeta img/; si tampoco, el dibujo */
+function photoHTML(pid,slice,fallback,alt){var n=photoName(pid,slice),p=prod(pid);if(!n)return fallback||'';var local=IMG+n+'.jpg',src=(!slice&&p&&p.foto)?p.foto:local;
+  return '<span class="ph-wrap"><img class="photo" src="'+esc(src)+'"'+(src!==local?' data-alt="'+esc(local)+'"':'')+' alt="'+esc(alt||'')+'" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="var a=this.getAttribute(\'data-alt\');if(a){this.removeAttribute(\'data-alt\');this.src=a}else this.parentNode.classList.add(\'nofoto\')"><span class="ph-fb">'+(fallback||'')+'</span></span>'}
 function ingredientes(p){var base=p.base?prod(p.base):p,t=(base.desc||'').replace(/\.$/,'');return t.split(/,\s*|\s+con\s+|\s+y\s+/).map(function(x){x=x.trim();return x.charAt(0).toUpperCase()+x.slice(1)}).filter(Boolean)}
 var pdOpen=null,pdView='completo';
 function detailHTML(pid){
@@ -1774,12 +1860,24 @@ function cfgExample(){
   var m=B.t2>0?B.t2:B.t1,pct=B.t2>0?B.p2:B.p1;
   return 'Ejemplo: un pedido de '+$m(B.t1)+' recibe '+B.p1+'% de descuento, y uno de '+$m(m)+' o más recibe '+pct+'%.';
 }
+/* Panel: catálogo y precios (los productos vienen de Bind; los precios los pone el dueño) */
+function catalogoPanelHTML(){
+  var nVis=CATALOGO.filter(function(p){return p.vis}).length;
+  var h='<div class="panel"><h3>Catálogo y precios</h3><p class="hint">Los '+CATALOGO.length+' productos salieron de Bind: nombres, descripciones, fotos y claves para el inventario. <b>Los precios son de ejemplo</b>, porque Bind no manda precios de venta: corrígelos aquí. Marca "En la tienda" para venderlo en línea.</p>';
+  h+='<div class="cf-row"><span style="flex:1">'+nVis+' de '+CATALOGO.length+' productos están en la tienda.</span><button class="btn btn-sm" id="cat-bind">Solo los que tienen existencias en Bind</button><button class="btn btn-sm" id="cat-all">Mostrar todos</button></div>';
+  CATS.forEach(function(c){var L=CATALOGO.filter(function(p){return p.cat===c.id});
+    h+='<h4 style="margin:18px 0 6px">'+esc(c.nombre)+'</h4><div class="tbl-wrap"><table class="cat-tbl"><tr><th>En la tienda</th><th>Producto</th><th>Precio de venta</th></tr>'+L.map(function(p){
+      return '<tr><td><input type="checkbox" data-catv="'+p.id+'"'+(p.vis?' checked':'')+' aria-label="Vender '+esc(p.nombre)+' en línea"></td><td><b>'+esc(p.nombre)+'</b>'+(p.on?'':'<small style="display:block;color:var(--ink-2)">Sin existencias al descargar de Bind</small>')+'</td><td><div class="tiers">'+Object.keys(p.sizes).map(function(k){return '<label class="cf-in">'+SIZE_LABEL[k]+' $<input type="number" min="1" max="9999" style="width:80px" data-catp="'+p.id+'|'+k+'" value="'+p.sizes[k]+'" aria-label="Precio de '+esc(p.nombre)+' '+SIZE_LABEL[k].toLowerCase()+'"></label>'}).join('')+'</div></td></tr>'}).join('')+'</table></div>'});
+  h+='<p class="hint" style="margin-top:12px">Complementos (también de Bind): '+COMPLEMENTOS.map(function(c){return esc(c.nombre)+' '+$m(c.p)}).join(' · ')+'.</p></div>';
+  return h;
+}
+function catGuardar(){applyCatalogo();save();if(DB.on&&DB.admin)dbSaveCfg()}
 /* Panel: vitrina de cada sucursal */
 var vtForm={pid:'tortuga|g',qty:1,h:null};
 var ofForm={pid:'tortuga|m',pct:20,ini:'',hrs:3,uni:10,max:1,suc:''};
 function prodOpts(cur,withCats){
   var h='';
-  if(withCats)h+='<optgroup label="Categoría completa">'+['individuales','secos','humedos','cheesecakes','vainilla','chocolate'].map(function(c){var v='cat:'+c+'|';return '<option value="'+v+'"'+(cur===v?' selected':'')+'>'+esc(OF_CAT[c])+'</option>'}).join('')+'</optgroup>';
+  if(withCats)h+='<optgroup label="Categoría completa">'+['individuales','secos','humedos','betun','cheesecakes','postres'].map(function(c){var v='cat:'+c+'|';return '<option value="'+v+'"'+(cur===v?' selected':'')+'>'+esc(OF_CAT[c])+'</option>'}).join('')+'</optgroup>';
   CATS.forEach(function(c){h+='<optgroup label="'+esc(c.nombre)+'">'+CATALOGO.filter(function(p){return p.cat===c.id}).map(function(p){return Object.keys(p.sizes).map(function(s){var v=p.id+'|'+s;return '<option value="'+v+'"'+(cur===v?' selected':'')+'>'+esc(p.nombre+(isCake(p)?' '+SIZE_LABEL[s].toLowerCase():'')+' · '+$m(p.sizes[s]))+'</option>'}).join('')}).join('')+'</optgroup>'});
   return h;
 }
@@ -1812,15 +1910,15 @@ function vtAccion(body){
   save();return Promise.resolve();
 }
 function vtDemo(){
-  var hoy=hoyISO(),list=[['tortuga','g',1,2],['tresleches','m',2,1],['emperador','g',0,3],['chtortuga','g',3,1],['ind-nutella','c',1,6],['muffin-nuez','n',2,8]],pr=Promise.resolve();
+  var hoy=hoyISO(),list=[['tortuga','g',1,2],['tresleches','m',2,1],['emperador','g',0,3],['chtortuga','g',3,1],['ind-nutella','n',1,6],['muffin-nuez','n',2,8]],pr=Promise.resolve();
   list.forEach(function(x){pr=pr.then(function(){return vtAccion({accion:'agregar',pid:x[0],size:x[1],qty:x[3],horneado:shiftDay(hoy,-x[2])})})});
   return pr.then(function(){toast('Listo: vitrina de ejemplo cargada');renderPanel()}).catch(function(){toast('No se pudo guardar la vitrina');renderPanel()});
 }
 /* Panel: ofertas relámpago */
 var PRESETS=[
   {t:'Gancho de mediodía',why:'El pastel más vendido, con poco descuento y pocas piezas. Atrae visitas a la tienda.',pid:'tortuga|m',pct:20,hora:12,dia:0,hrs:3,uni:10,max:1},
-  {t:'Tarde de charolitas',why:'De 5 a 7 pm, la hora del antojo. Ayuda a vaciar la vitrina antes de cerrar.',pid:'cat:individuales|',pct:30,hora:17,dia:0,hrs:2,uni:30,max:6},
-  {t:'Muffins de desayuno',why:'Venta temprano, con un producto de precio bajo.',pid:'cat:secos|',pct:25,hora:8,dia:1,hrs:3,uni:24,max:6},
+  {t:'Tarde de charolas',why:'De 5 a 7 pm, la hora del antojo. Ayuda a vaciar la vitrina antes de cerrar.',pid:'cat:individuales|',pct:30,hora:17,dia:0,hrs:2,uni:30,max:6},
+  {t:'Panadería de desayuno',why:'Muffins, donas y conchas temprano, con precio bajo.',pid:'cat:secos|',pct:25,hora:8,dia:1,hrs:3,uni:24,max:6},
   {t:'Rescate de media semana',why:'Un pastel que se vende poco, en martes. Confírmalo con las ventas de Bind.',pid:'nevado|g',pct:25,hora:10,dia:'mar',hrs:6,uni:8,max:2}
 ];
 function dtLocal(d){var z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,16)}
@@ -1873,21 +1971,13 @@ function frExample(){
 /* Panel: inventario real desde Bind (la llave vive en Cloudflare, nunca aquí) */
 var bindCfg=null,bindUI={alm:null,prods:null,campos:null,err:'',msg:'',busy:false,llave:null,cargando:false};
 function bindLoad(){if(bindUI.cargando||bindCfg||!DB.on||!DB.admin)return;bindUI.cargando=true;
-  dbJSON('/panel/bind/config',{admin:true}).then(function(j){bindUI.cargando=false;bindUI.llave=!!j.llave;bindCfg=j.bind||{on:false,almacenes:{},mapa:{}};if(!bindCfg.almacenes)bindCfg.almacenes={};if(!bindCfg.mapa)bindCfg.mapa={};if(admTab==='config'&&!editingIn($('#panel')))renderPanel()})
+  dbJSON('/panel/bind/config',{admin:true}).then(function(j){bindUI.cargando=false;bindUI.llave=!!j.llave;bindCfg=j.bind||{on:false,almacenes:{},mapa:{}};if(!bindCfg.almacenes)bindCfg.almacenes={};if(!bindCfg.mapa)bindCfg.mapa={};if(bindAuto())bindSave();if(admTab==='config'&&!editingIn($('#panel')))renderPanel()})
   .catch(function(){bindUI.cargando=false;bindUI.err='No se pudo leer la configuración de Bind. ¿Ya publicaste el Worker nuevo?';bindCfg={on:false,almacenes:{},mapa:{}};if(admTab==='config')renderPanel()})}
 function bindErrTxt(e){var d=(e&&e.detalle)||'';if(d==='sin_llave')return 'Falta guardar la llave de Bind en Cloudflare como secreto con el nombre BIND_API_KEY.';if(d==='bind_401'||d==='bind_403')return 'Bind rechazó la llave (error '+d.slice(5)+'). Revisa que esté completa y vigente.';if(d==='bind_429')return 'Bind dice que ya se usaron las consultas del día. Intenta más tarde.';return 'No se pudo consultar Bind'+(d?' ('+d+')':'')+'.'}
 function bindItems(){var out=[];CATALOGO.forEach(function(p){Object.keys(p.sizes).forEach(function(s){out.push({k:p.id+'|'+s,nombre:p.nombre+(isCake(p)?' '+SIZE_LABEL[s].toLowerCase():''),p:p,size:s})})});return out}
 function bindNorm(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
-function bindAuto(){
-  var n=0,prods=(bindUI.prods||[]).map(function(x){return {id:x.id,w:' '+bindNorm(x.nombre+' '+x.codigo)+' '}});
-  bindItems().forEach(function(it){
-    var base=bindNorm(it.p.base?prod(it.p.base).nombre:it.p.nombre).split(' ').filter(function(w){return w.length>2&&w!=='individual'&&w!=='muffin'}),extra=it.p.cat==='individuales'?['individual','charolita','ind','rebanada']:it.p.cat==='secos'?['muffin','panque']:[it.size==='g'?'grande':'mediano',it.size==='g'?'gde':'med'];
-    var best=null,bs=-1,tie=false;
-    prods.forEach(function(x){if(!base.every(function(w){return x.w.indexOf(' '+w)>-1}))return;var sc=extra.some(function(w){return x.w.indexOf(' '+w)>-1})?2:0;if(it.p.cat!=='individuales'&&/ (individual|charolita|rebanada) /.test(x.w))sc-=2;if(sc>bs){best=x;bs=sc;tie=false}else if(sc===bs)tie=true});
-    var usado=Object.keys(bindCfg.mapa).some(function(k){return best&&bindCfg.mapa[k]===best.id});if(best&&!tie&&bs>=2&&!usado&&!bindCfg.mapa[it.k]){bindCfg.mapa[it.k]=best.id;n++}
-  });
-  return n;
-}
+function catBindMap(){var m={};CATALOGO.forEach(function(p){Object.keys(p.bind||{}).forEach(function(k){m[p.id+'|'+k]=p.bind[k]})});return m}
+function bindAuto(){var m=catBindMap(),n=0;Object.keys(m).forEach(function(k){if(bindCfg.mapa[k]!==m[k]){bindCfg.mapa[k]=m[k];n++}});return n}
 function bindHTML(){
   if(!DB.on)return '<section class="cf-sec span2"><h3>Inventario real desde Bind</h3><p class="hint">Se activa cuando la tienda está conectada a la base de datos.</p></section>';
   if(!bindCfg){bindLoad();return '<section class="cf-sec span2"><h3>Inventario real desde Bind</h3><p class="hint">Cargando…</p></section>'}
@@ -1900,7 +1990,7 @@ function bindHTML(){
   h+='<div class="cf-row"><b>Catálogo</b><span style="flex:1">Descargar todos los productos de Bind en un archivo (para armar el catálogo de la tienda).</span><button class="btn btn-sm" id="bind-csv"'+(U.busy?' disabled':'')+'>Descargar productos</button></div>';
   h+='<div class="cf-row"><b>Paso 2</b><span style="flex:1">¿Qué almacén de Bind es cada sucursal?</span></div>'+SUCURSALES.map(function(x){var cur=B.almacenes[x.id]||'';
     return '<div class="cf-field"><div><label>'+esc(x.nombre)+'</label></div>'+(U.alm?'<select data-bindalm="'+x.id+'" style="width:240px" aria-label="Almacén de '+esc(x.nombre)+'"><option value="">Sin conectar</option>'+U.alm.map(function(a){return '<option value="'+esc(a.id)+'"'+(a.id===cur?' selected':'')+'>'+esc(a.nombre||a.id)+'</option>'}).join('')+'</select>':'<small>'+(cur?'Conectada':'Sin conectar (primero prueba la conexión)')+'</small>')+'</div>'}).join('');
-  h+='<div class="cf-row"><b>Paso 3</b><span style="flex:1">Emparejar cada producto de la tienda con su producto en Bind. Llevas '+nMap+'.</span><button class="btn btn-sm" id="bind-prods"'+(U.busy?' disabled':'')+'>'+(U.prods?'Recargar productos':'Traer productos de Bind')+'</button>'+(U.prods?'<button class="btn btn-sm" id="bind-auto">Emparejar por nombre</button>':'')+'</div>';
+  h+='<div class="cf-row"><b>Paso 3</b><span style="flex:1">Productos emparejados con Bind: '+nMap+'. Ya vienen emparejados porque el catálogo salió de Bind; solo revisa si quieres ver las existencias.</span><button class="btn btn-sm" id="bind-prods"'+(U.busy?' disabled':'')+'>'+(U.prods?'Recargar productos':'Traer productos de Bind')+'</button>'+(U.prods?'<button class="btn btn-sm" id="bind-auto">Usar claves del catálogo</button>':'')+'</div>';
   if(U.prods){
     var opts=U.prods.slice().sort(function(a,b){return a.nombre.localeCompare(b.nombre)});
     h+='<p class="hint">Bind mandó '+U.prods.length+' productos'+(U.campos?' (campos: '+esc(U.campos.slice(0,12).join(', '))+')':'')+'. Revisa cada uno: lo que quede en "No sincronizar" se sigue capturando a mano.</p><div class="tbl-wrap" style="max-height:420px;overflow-y:auto"><table><tr><th>Producto de la tienda</th><th>Producto en Bind</th><th>Existencia</th></tr>'+bindItems().map(function(it){var cur=B.mapa[it.k]||'',f=opts.filter(function(o){return o.id===cur})[0];
@@ -1954,7 +2044,7 @@ function panelLoad(){var pk=snapKey(adm.suc,adm.fecha);DB.panelLoading=true;DB.l
     if(e&&(e.status===401||e.status===403)){DB.admin='';try{sessionStorage.removeItem('mrcake-admin')}catch(x){}DB.loginErr=e.error==='falta_password'?'Falta configurar ADMIN_PASSWORD en Cloudflare.':'Tu sesión terminó. Vuelve a escribir la contraseña.';renderPanel()}});
 }
 function dbSaveCfg(){clearTimeout(DB.cfgTimer);DB.cfgTimer=setTimeout(function(){var c=state.cfg;
-  var cf={minLead:c.minLead,sugLead:c.sugLead,payMin:c.payMin,customLead:c.customLead,hoyHasta:c.hoyHasta,barra:c.barra,paquete:c.paquete,envio:c.envio,frescura:c.frescura,ofertas:c.ofertas};if(bindCfg)cf.bind=bindCfg;
+  var cf={minLead:c.minLead,sugLead:c.sugLead,payMin:c.payMin,customLead:c.customLead,hoyHasta:c.hoyHasta,barra:c.barra,paquete:c.paquete,envio:c.envio,frescura:c.frescura,ofertas:c.ofertas,catalogo:c.catalogo};if(bindCfg)cf.bind=bindCfg;
   dbJSON('/panel/config',{method:'POST',admin:true,body:{config:cf}})
     .then(function(){toast('Ajustes guardados en la base de datos')}).catch(function(){toast('No se pudieron guardar los ajustes')})},500)}
 function renderPanel(){
@@ -1967,13 +2057,14 @@ function renderPanel(){
   add(panelRow('Personalizados','Por día','custom','x'));
   CATS.forEach(function(c){
     rows+='<tr class="grp"><td colspan="6">'+esc(c.nombre)+'</td></tr>';
-    CATALOGO.filter(function(p){return p.cat===c.id}).forEach(function(p){Object.keys(p.sizes).forEach(function(s){add(panelRow(p.nombre,SIZE_LABEL[s],p.id,s))})});
+    CATALOGO.filter(function(p){return p.cat===c.id&&p.vis}).forEach(function(p){Object.keys(p.sizes).forEach(function(s){add(panelRow(p.nombre,SIZE_LABEL[s],p.id,s))})});
   });
   var list=DB.on?((DB.panel&&DB.panel.k===snapKey(adm.suc,adm.fecha))?DB.panel.pedidos:[]):state.reservas.filter(function(r){return r.sucursal===adm.suc&&r.fecha===adm.fecha&&r.estado!=='cancelado'}).sort(function(a,b){return b.creado-a.creado});
   var venta=list.filter(function(r){return r.estado==='pagado'}).reduce(function(t,r){return t+r.total},0);
   var html='<div class="ph"><div><h2>Panel de cocina</h2><p>Controla lo que se vende en línea y cómo funciona la tienda.</p></div></div>'+(DB.on?'<p class="db-st on"><span class="dot"></span>Conectado a la base de datos. Todos los equipos ven lo mismo; se actualiza cada 10 segundos. <button class="linkbtn" data-adm-out>Cerrar sesión</button></p>':'<p class="db-st off">Modo local: los datos solo se guardan en este navegador.</p>');
-  html+='<div class="ptabs" role="tablist" aria-label="Secciones del panel">'+[['inventario','Inventario y pedidos'],['vitrina','Vitrina de hoy'],['ofertas','Ofertas relámpago'],['config','Configuración de la tienda']].map(function(t){return '<button role="tab" data-ptab="'+t[0]+'" aria-selected="'+(admTab===t[0])+'">'+t[1]+'</button>'}).join('')+'</div>';
+  html+='<div class="ptabs" role="tablist" aria-label="Secciones del panel">'+[['inventario','Inventario y pedidos'],['catalogo','Catálogo y precios'],['vitrina','Vitrina de hoy'],['ofertas','Ofertas relámpago'],['config','Configuración de la tienda']].map(function(t){return '<button role="tab" data-ptab="'+t[0]+'" aria-selected="'+(admTab===t[0])+'">'+t[1]+'</button>'}).join('')+'</div>';
   if(admTab==='config'){html+=configHTML()}
+  else if(admTab==='catalogo'){html+=catalogoPanelHTML()}
   else if(admTab==='vitrina'){html+=vitrinaPanelHTML()}
   else if(admTab==='ofertas'){html+=ofertasPanelHTML()}
   else{
@@ -1995,6 +2086,7 @@ $('#panel').addEventListener('click',function(e){
   if(b.hasAttribute('data-pday')){adm.fecha=shiftDay(adm.fecha,+b.getAttribute('data-pday'));renderPanel();var m=$('[data-pday="'+b.getAttribute('data-pday')+'"]');if(m)m.focus();return}
   if(b.hasAttribute('data-adm-out')){DB.admin='';DB.loginErr='';DB.panel=null;try{sessionStorage.removeItem('mrcake-admin')}catch(x){}renderPanel();return}
   if(b.hasAttribute('data-ptab')){admTab=b.getAttribute('data-ptab');if(DB.on)DB.panel=null;renderPanel();var pt=$('[role="tab"][data-ptab="'+admTab+'"]');if(pt)pt.focus();return}
+  if(b.id==='cat-bind'||b.id==='cat-all'){var O3=state.cfg.catalogo;CATALOGO.forEach(function(p){O3[p.id]=O3[p.id]||{};if(b.id==='cat-all')O3[p.id].v=1;else delete O3[p.id].v});catGuardar();renderPanel();toast(b.id==='cat-all'?'Todos los productos están en la tienda':'Solo los productos con existencias en Bind');return}
   if(b.id==='vt-demo'){b.disabled=true;vtDemo();return}
   if(b.id==='bind-test'){bindUI.busy=true;bindUI.err='';bindUI.msg='';renderPanel();dbJSON('/panel/bind/almacenes',{admin:true}).then(function(j){bindUI.busy=false;bindUI.alm=j.almacenes||[];bindUI.msg='Conexión correcta: Bind tiene '+bindUI.alm.length+(bindUI.alm.length===1?' almacén.':' almacenes.');renderPanel()}).catch(function(e){bindUI.busy=false;bindUI.err=bindErrTxt(e);renderPanel()});return}
   if(b.id==='bind-prods'){var al=SUCURSALES.map(function(x){return bindCfg.almacenes[x.id]}).filter(Boolean)[0];if(!al){toast('Primero elige el almacén de al menos una sucursal');return}bindUI.busy=true;bindUI.err='';bindUI.msg='';renderPanel();dbJSON('/panel/bind/inventario?almacen='+encodeURIComponent(al),{admin:true}).then(function(j){bindUI.busy=false;bindUI.prods=j.productos||[];bindUI.campos=j.campos||null;renderPanel()}).catch(function(e){bindUI.busy=false;bindUI.err=bindErrTxt(e);renderPanel()});return}
@@ -2004,7 +2096,7 @@ $('#panel').addEventListener('click',function(e){
       var csv='\ufeff'+cols.map(q).join(',')+'\r\n'+L.map(function(r){return cols.map(function(k){return q(r[k])}).join(',')}).join('\r\n');
       var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='productos-bind.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);
       bindUI.msg='Listo: se descargó productos-bind.csv con '+L.length+' productos. Revisa tu carpeta de Descargas.';renderPanel()}).catch(function(e){bindUI.busy=false;bindUI.err=bindErrTxt(e);renderPanel()});return}
-  if(b.id==='bind-auto'){var na=bindAuto();bindSave();bindUI.msg=na?'Emparejé '+na+' productos por nombre. Revísalos uno por uno antes de encender la sincronización.':'No encontré coincidencias seguras por nombre. Emparéjalos a mano.';renderPanel();return}
+  if(b.id==='bind-auto'){var na=bindAuto();bindSave();bindUI.msg=na?'Listo: '+na+' productos quedaron emparejados con su clave de Bind.':'Todos los productos ya estaban emparejados con Bind.';renderPanel();return}
   if(b.hasAttribute('data-bindsync')){var bs=b.getAttribute('data-bindsync');bindUI.busy=true;bindUI.err='';bindUI.msg='';renderPanel();dbJSON('/panel/bind/sincronizar',{method:'POST',admin:true,body:{sucursal:bs}}).then(function(j){bindUI.busy=false;DB.vit[bs]=j.vitrina||[];bindUI.msg='Sucursal '+suc(bs).nombre+' sincronizada: '+(j.vitrina||[]).reduce(function(t,l){return t+(+l.qty||0)},0)+' piezas en vitrina. Mírala en la pestaña "Vitrina de hoy".';renderPanel()}).catch(function(e){bindUI.busy=false;bindUI.err=bindErrTxt(e);renderPanel()});return}
   if(b.hasAttribute('data-vtdel')){var vid=b.getAttribute('data-vtdel');vtAccion({accion:'borrar',id:vid}).then(function(){toast('Pieza quitada de la vitrina');renderPanel()}).catch(function(){toast('No se pudo quitar')});return}
   if(b.hasAttribute('data-preset')){var P=PRESETS[+b.getAttribute('data-preset')];ofForm={pid:P.pid,pct:P.pct,ini:presetIni(P),hrs:P.hrs,uni:P.uni,max:P.max,suc:''};renderPanel();var fp=$('#of-pid');if(fp)fp.focus();toast('Revisa los datos y toca "Crear oferta"');return}
@@ -2022,6 +2114,8 @@ $('#panel').addEventListener('change',function(e){
   if(t.id==='cfg-min'||t.id==='cfg-sug'||t.id==='cfg-cus'){var v=Math.max(0,Math.min(14,parseInt(t.value,10)||0));state.cfg[{'cfg-min':'minLead','cfg-sug':'sugLead','cfg-cus':'customLead'}[t.id]]=v;save();sel.fecha=null;toast('Regla guardada');return}
   if(t.hasAttribute('data-cfg')){var path=t.getAttribute('data-cfg').split('.'),o=state.cfg;for(var i=0;i<path.length-1;i++)o=o[path[i]];var last=path[path.length-1];o[last]=last==='on'?t.value==='1':Math.max(0,parseFloat(t.value)||0);if(path[0]==='frescura'&&last==='p')o[last]=Math.min(70,o[last]);save();var ex=$('#cfg-example');if(ex)ex.textContent=cfgExample();var fx=$('#fr-example');if(fx)fx.textContent=frExample();toast('Guardado');return}
   if(t.id==='cfg-pay'){state.cfg.payMin=+t.value;save();toast('Tiempo para pagar: '+t.value+' minutos');return}
+  if(t.hasAttribute('data-catv')){var cv=t.getAttribute('data-catv'),O=state.cfg.catalogo;O[cv]=O[cv]||{};O[cv].v=t.checked?1:0;catGuardar();toast(prod(cv).nombre+(t.checked?' ahora se vende en línea':' ya no aparece en la tienda'));return}
+  if(t.hasAttribute('data-catp')){var cp=t.getAttribute('data-catp').split('|'),val=Math.round(+t.value),O2=state.cfg.catalogo;if(!(val>0)){toast('Escribe un precio mayor a 0');t.value=prod(cp[0]).sizes[cp[1]];return}O2[cp[0]]=O2[cp[0]]||{};O2[cp[0]].p=O2[cp[0]].p||{};O2[cp[0]].p[cp[1]]=val;catGuardar();toast('Precio guardado: '+itemLabel({pid:cp[0],size:cp[1]})+' '+$m(val));return}
   if(t.id==='bind-on'&&bindCfg){bindCfg.on=t.value==='1';bindSave();renderPanel();return}
   if(t.hasAttribute('data-bindalm')&&bindCfg){bindCfg.almacenes[t.getAttribute('data-bindalm')]=t.value;bindSave();return}
   if(t.hasAttribute('data-bindmap')&&bindCfg){var bk=t.getAttribute('data-bindmap');if(t.value)bindCfg.mapa[bk]=t.value;else delete bindCfg.mapa[bk];bindSave();return}
