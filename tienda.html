@@ -1008,7 +1008,9 @@ function demoVitrina(){
 }
 /* Vitrina de cada sucursal: piezas ya horneadas que se venden para recoger hoy */
 function lotesVendidos(id){var n=0;state.reservas.forEach(function(r){if(r.estado!=='apartado'&&r.estado!=='pagado')return;r.items.forEach(function(it){if(it.lote===id)n+=it.qty})});return n}
-function lotes(s){
+/* Si la sucursal ya tiene lotes del Excel, solo se usan esos (el Excel trae las fechas reales); lo de Bind o captura a mano se ignora para no contar doble */
+function lotes(s){var L=lotes0(s),ex=L.filter(function(l){return l.origen==='excel'});return ex.length?ex:L}
+function lotes0(s){
   if(!s)return [];
   if(DB.on){
     if(!DB.vit[s]){if(!DB.vitL[s]){DB.vitL[s]=1;dbLoad(s,hoyISO()).then(function(){DB.vitL[s]=0;if(!DB.vit[s])DB.vit[s]=[];dbRefreshViews()},function(){DB.vitL[s]=0;if(!DB.vit[s])DB.vit[s]=[]})}return []}
@@ -2050,9 +2052,12 @@ function vitrinaPanelHTML(){
   if(!vtForm.h)vtForm.h=hoy;
   var h=admSucChips()+'<div class="vt-stack">'+excelHTML()+'<div class="panel"><h3>Vitrina de hoy · Sucursal '+esc(suc(s).nombre)+'</h3><p class="hint">Lo que ya está horneado en esta sucursal. En la tienda aparece como "Hoy, vitrina", con el descuento que marcan las reglas de frescura según los días que lleva.</p>';
   h+='<form class="vt-form" id="vt-add"><label class="wide">Producto<select id="vt-pid">'+prodOpts(vtForm.pid,false)+'</select></label><label>Piezas<input type="number" id="vt-qty" min="1" max="99" value="'+vtForm.qty+'"></label><label>Horneado el<input type="date" id="vt-h" max="'+hoy+'" value="'+vtForm.h+'"></label><button class="btn btn-primary" type="submit">Agregar a vitrina</button></form>';
+  var vencidos=L.filter(function(l){return l.caduca&&l.dias<0&&l.disp>0});
+  if(L.some(function(l){return l.origen==='excel'}))h+='<p class="cf-ex">Esta sucursal sigue su Excel de caducidades: aquí solo cuentan los lotes del Excel. Para corregir piezas o fechas, cámbialas en el Excel.</p>';
+  if(vencidos.length)h+='<div class="op-err"><p><b>'+vencidos.length+(vencidos.length===1?' lote ya caducó':' lotes ya caducaron')+' y sigue'+(vencidos.length===1?'':'n')+' pendiente'+(vencidos.length===1?'':'s')+' en el Excel:</b> '+esc(vencidos.map(function(l){return itemLabel({pid:l.pid,size:l.size})+' ('+fCorta(l.caduca)+')'}).join(', '))+'. La tienda no los vende; en el Excel márcalos como Merma, Vendido o Transferido.</p></div>';
   if(pend)h+='<p class="hint">Cargando la vitrina…</p>';
   else if(!L.length)h+='<p class="empty">No hay piezas capturadas en la vitrina de esta sucursal. <button class="linkbtn" id="vt-demo">Llenar con un ejemplo</button></p>';
-  else h+='<div class="tbl-wrap"><table><tr><th>Producto</th><th>Horneado</th><th>Piezas</th><th>Vendidas en línea</th><th>Quedan</th><th>Hoy</th><th>Precio hoy</th><th></th></tr>'+L.map(function(l){var p=prod(l.pid);if(!p)return '';var nm=p.nombre+(isCake(p)?' '+SIZE_LABEL[l.size].toLowerCase():'');
+  else h+='<div class="tbl-wrap"><table><tr><th>Producto</th><th>Fecha</th><th>Piezas</th><th>Vendidas en línea</th><th>Quedan</th><th>Hoy</th><th>Precio hoy</th><th></th></tr>'+L.map(function(l){var p=prod(l.pid);if(!p)return '';var nm=p.nombre+(isCake(p)?' '+SIZE_LABEL[l.size].toLowerCase():'');
       var st=l.retirar?'<span class="badge b-out">Retirar</span>':(l.pct?'<span class="badge b-disc">−'+l.pct+'%</span>':'<span class="badge b-fresh">Precio normal</span>');
       return '<tr><td>'+esc(nm)+'</td><td>'+esc(l.txt)+'<small style="display:block;color:var(--ink-2)">'+(l.caduca?'Del Excel'+(l.pctx>0?' · la sucursal puso −'+l.pctx+'%':''):'Horneado '+esc(fCorta(l.horneado)))+'</small></td><td><input type="number" min="0" max="99" data-vtq="'+l.id+'" value="'+l.qty+'" aria-label="Piezas de '+esc(nm)+'"></td><td class="n">'+l.vendidos+'</td><td class="n">'+l.disp+'</td><td>'+st+'</td><td class="n">'+(l.retirar?'—':$m(lotePrecio(l,adm.suc)))+'</td><td><button class="btn btn-sm" data-vtdel="'+l.id+'" aria-label="Quitar '+esc(nm)+' de la vitrina">Quitar</button></td></tr>'}).join('')+'</table></div>';
   h+='</div><div class="panel"><h3>Reglas de frescura</h3><p class="hint">Cuánto descuento lleva cada pieza.</p>'+reglasCadHTML()+'<p class="hint" style="margin-top:8px">Piezas sin fecha de caducidad (capturadas a mano o de Bind), según los días desde que se hornearon:</p>'+reglasHTML()+'<button class="btn btn-sm" data-ptab="config">Cambiar reglas</button>';
@@ -2066,7 +2071,7 @@ function vtAccion(body){
   if(body.accion==='agregar')arr.push({id:'L'+(state.lseq++),pid:body.pid,size:body.size,qty:body.qty,horneado:body.horneado});
   else if(body.accion==='cantidad')arr.forEach(function(l){if(l.id===body.id)l.qty=body.qty});
   else if(body.accion==='borrar')state.vitrina[body.sucursal]=arr.filter(function(l){return l.id!==body.id});
-  else if(body.accion==='importar'){var hoy=hoyISO();state.xlprecios=state.xlprecios||{};state.xlprecios[body.sucursal]=body.precios||{};state.vitrina[body.sucursal]=arr.filter(function(l){return l.origen!=='excel'}).concat(body.lotes.map(function(l){return {id:'L'+(state.lseq++),pid:l.pid,size:l.size,qty:l.qty,horneado:hoy,caduca:l.caduca,pctx:l.pctx,origen:'excel'}}))}
+  else if(body.accion==='importar'){var hoy=hoyISO();state.xlprecios=state.xlprecios||{};state.xlprecios[body.sucursal]=body.precios||{};state.vitrina[body.sucursal]=[].concat(body.lotes.map(function(l){return {id:'L'+(state.lseq++),pid:l.pid,size:l.size,qty:l.qty,horneado:hoy,caduca:l.caduca,pctx:l.pctx,origen:'excel'}}))}
   save();return Promise.resolve();
 }
 function vtDemo(){
