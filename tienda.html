@@ -517,6 +517,8 @@ dialog#pd::backdrop{background:rgba(30,20,24,.55);-webkit-backdrop-filter:blur(4
 .sc[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
 .sc .tag{margin-top:8px;align-self:flex-start;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;background:var(--mint);color:var(--mint-ink)}
 .suc-map{margin-top:14px}
+.suc-city{grid-column:1/-1;margin:10px 0 -2px;font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.suc-city:first-child{margin-top:0}
 .chip.hoy{min-width:120px;text-align:center;padding:10px 12px;border-radius:18px;background:var(--mint);border-color:transparent;color:var(--mint-ink)}
 .chip.hoy b{display:block;font-family:var(--display);font-weight:600;font-size:22px;line-height:1.2}
 .chip.hoy small{color:inherit;opacity:.85}
@@ -687,10 +689,16 @@ var CATALOGO=[
   {id:'muffin-frutosrojos',cat:'secos',nombre:'Muffin de frutos rojos',desc:'Muffin con frutos rojos.',sizes:{n:20}}
 ];
 var SUCURSALES=[
-  {id:'nava-centro',nombre:'Nava Centro',dir:'Morelos y Ramos Arizpe, Zona Centro, Nava'},
-  {id:'nava-drive',nombre:'Nava Drive',dir:'Venustiano Carranza 1019, Zona Centro, Nava'},
-  {id:'acuna-lm',nombre:'Acuña López Mateos',dir:'Blvd. Adolfo López Mateos 1295-C, Cd. Acuña'},
-  {id:'acuna-5f',nombre:'Acuña 5 de Febrero',dir:'5 de Febrero 475, Cd. Acuña'}
+  {id:'nava-centro',ci:'nava',nombre:'Nava Centro',dir:'Morelos y Ramos Arizpe, Zona Centro, 26170 Nava'},
+  {id:'nava-drive',ci:'nava',nombre:'Nava Autoservicio',dir:'Venustiano Carranza 1019, 26170 Nava'},
+  {id:'acuna-lm',ci:'acuna',nombre:'Acuña López Mateos',dir:'Blvd. Adolfo López Mateos 1295-C, Benito Juárez, 26215 Cd. Acuña'},
+  {id:'acuna-5f',ci:'acuna',nombre:'Acuña 5 de Febrero',dir:'5 de Febrero 475, 26215 Cd. Acuña'},
+  {id:'pn-industrial',ci:'piedras',nombre:'Piedras Negras Av. Industrial',dir:'Av. Industrial 602, local 22, Vista Hermosa, 26070 Piedras Negras'},
+  {id:'pn-lopezmateos',ci:'piedras',nombre:'Piedras Negras López Mateos',dir:'Adolfo López Mateos 603 N, Col. Roma, 26025 Piedras Negras'},
+  {id:'pn-villas',ci:'piedras',nombre:'Piedras Negras Villas',dir:'Mar Muerto 1117, Año 2000, 26080 Piedras Negras'},
+  {id:'allende',ci:'allende',nombre:'Allende',dir:'Miguel Hidalgo 701, Col. Centro, 26530 Allende'},
+  {id:'sabinas',ci:'sabinas',nombre:'Sabinas',dir:'Hermenegildo Farías 812, 26740 Sabinas'},
+  {id:'zaragoza',ci:'zaragoza',nombre:'Zaragoza',dir:'Hidalgo 408 Sur, Centro, 26450 Zaragoza'}
 ];
 function prod(id){for(var i=0;i<CATALOGO.length;i++)if(CATALOGO[i].id===id)return CATALOGO[i];return null}
 function suc(id){for(var i=0;i<SUCURSALES.length;i++)if(SUCURSALES[i].id===id)return SUCURSALES[i];return SUCURSALES[0]}
@@ -1075,8 +1083,8 @@ var design={forma:'redondo',pisos:[{tam:20,sabor:'vainilla',relleno:'cajeta'}],c
 function firstDate(){return addDays(Math.max(0,+state.cfg.minLead||0))}
 function ensureFecha(){if(sel.vitrina){sel.fecha=hoyISO();return}var min=firstDate();if(!sel.fecha||sel.fecha<min)sel.fecha=addDays(Math.max(+state.cfg.sugLead||4,+state.cfg.minLead||0))}
 function inCart(pid,size){var n=0;cart.forEach(function(it){if(it.pid===pid&&it.size===size&&!it.lote)n+=it.qty});return n}
-var CIUDADES=[{id:'nava',nombre:'Nava',suc:'nava-centro'},{id:'acuna',nombre:'Ciudad Acuña',suc:'acuna-lm'}];
-function ciudadDe(sid){return byId(CIUDADES,String(sid||'').indexOf('acuna')===0?'acuna':'nava')}
+var CIUDADES=[{id:'nava',nombre:'Nava'},{id:'acuna',nombre:'Ciudad Acuña'},{id:'piedras',nombre:'Piedras Negras'},{id:'allende',nombre:'Allende'},{id:'sabinas',nombre:'Sabinas'},{id:'zaragoza',nombre:'Zaragoza'}];
+function ciudadDe(sid){var x=byId(SUCURSALES,sid);return byId(CIUDADES,x&&x.ci?x.ci:'nava')}
 function entregaObj(){return sel.modo==='domicilio'?{modo:'domicilio',ciudad:ciudadDe(sel.suc).nombre,calle:sel.dir.calle.trim(),colonia:sel.dir.colonia.trim(),ref:sel.dir.ref.trim(),horario:sel.dir.horario}:{modo:'sucursal'}}
 var HORARIOS=['10:00 a 13:00','13:00 a 16:00','16:00 a 19:00'];
 function isIndiv(it){var p=prod(it.pid);return !!p&&(p.cat==='individuales'||p.cat==='secos')}
@@ -1107,7 +1115,7 @@ function packHTML(){
   var T=totals(),tiers=(state.cfg.paquete||[]).filter(function(x){return x.n>0}).sort(function(a,b){return a.n-b.n}),next=tiers.filter(function(x){return x.n>T.indQ})[0];
   return '<div class="pack"><b>Arma tu paquete y ahorra</b><span>'+tiers.map(function(x){return x.n+' piezas: '+x.p+'%'}).join(' · ')+'</span><small>Combina charolitas y muffins. Llevas '+T.indQ+(T.indQ===1?' pieza':' piezas')+(next?'; te faltan '+(next.n-T.indQ)+' para '+next.p+'% de descuento.':'; ya tienes el mayor descuento.')+'</small></div>';
 }
-function mapQ(s){return 'Mr. Cake, '+s.dir+', Coahuila'}
+function mapQ(s){return 'Pastelería Mr. Cake, '+s.dir+', Coahuila'}
 function entregaTxt(r){var e=r.entrega||{},f=fFecha.format(dateOf(r.fecha));if(e.modo==='domicilio')return 'Te lo llevamos a '+e.calle+(e.colonia?', '+e.colonia:'')+', '+e.ciudad+', el '+f+', de '+e.horario;var s=suc(r.sucursal);return 'Recoges en Sucursal '+s.nombre+' ('+s.dir+'), el '+f}
 function waEntrega(r){var e=r.entrega||{},f=fFecha.format(dateOf(r.fecha));if(e.modo==='domicilio')return 'Entrega a domicilio: '+e.calle+(e.colonia?', '+e.colonia:'')+', '+e.ciudad+(e.ref?'\nReferencias: '+e.ref:'')+'\nDía: '+f+', de '+e.horario;var s=suc(r.sucursal);return 'Recoges en: Sucursal '+s.nombre+' ('+s.dir+')\nDía: '+f}
 function ahorro(r){var d=r.desglose;return d?(d.itD||0)+(d.pkD||0)+(d.barD||0):0}
@@ -1162,7 +1170,7 @@ function stepsHTML(cur){
 function cap(t){t=String(t||'');return t.charAt(0).toUpperCase()+t.slice(1)}
 function wzHead(){
   var s=sel.suc?suc(sel.suc):null,when=sel.vitrina?'hoy':'el '+fFecha.format(dateOf(sel.fecha));
-  if(wz===1)return ['¿En qué sucursal vas a comprar?','Cada sucursal tiene su propia vitrina, con sus propios descuentos del día.'];
+  if(wz===1)return ['¿En qué sucursal vas a comprar?','Tenemos 10 sucursales en 6 ciudades de Coahuila. Cada una tiene su propia vitrina, con sus propios descuentos del día.'];
   if(wz===2)return ['¿Cómo y cuándo lo quieres?','Compras en Sucursal '+s.nombre+'.'];
   if(wz===3)return sel.vitrina?['Elige de la vitrina de hoy','Sucursal '+s.nombre+'. Primero lo que tiene más descuento.']:['Elige tus pasteles','Para '+when+(sel.modo==='domicilio'?', con envío a domicilio.':', en Sucursal '+s.nombre+'.')];
   if(wz===4)return ['Revisa tu pedido','Escribe los mensajes de tus pasteles y tus datos de contacto.'];
@@ -1206,9 +1214,12 @@ function refreshWizard(){
 }
 /* Paso 1: sucursal */
 function sucCards(){
-  return SUCURSALES.map(function(x){var L=vitrinaVenta(x.id),mx=maxDesc(L);
+  var grupos=[],solas=[];CIUDADES.forEach(function(c){var L0=SUCURSALES.filter(function(x){return x.ci===c.id});if(L0.length>1)grupos.push({n:c.nombre,L:L0});else if(L0.length)solas.push({n:c.nombre,L:L0})});
+  if(solas.length)grupos.push({n:joinEs(solas.map(function(g){return g.n})),L:[].concat.apply([],solas.map(function(g){return g.L}))});
+  return grupos.map(function(g){var L0=g.L;
+    return '<p class="suc-city">'+esc(g.n)+'</p>'+L0.map(function(x){var L=vitrinaVenta(x.id),mx=maxDesc(L);
     var tag=L.length&&hoyAbierto()?'<span class="tag">Hoy en vitrina: '+L.length+(L.length===1?' producto':' productos')+(mx?' · hasta −'+mx+'%':'')+'</span>':'';
-    return '<button class="sc" data-suc="'+x.id+'" aria-pressed="'+(sel.suc===x.id)+'"><b>'+esc(x.nombre)+'</b><small>'+esc(x.dir)+'</small>'+tag+'</button>'}).join('');
+    return '<button class="sc" data-suc="'+x.id+'" aria-pressed="'+(sel.suc===x.id)+'" aria-label="'+esc('Sucursal '+x.nombre+', '+x.dir)+'"><b>'+esc(x.nombre)+'</b><small>'+esc(x.dir)+'</small>'+tag+'</button>'}).join('')}).join('');
 }
 function stepSuc(){
   var h='<div class="sucs" id="sucs" role="group" aria-label="Sucursal">'+sucCards()+'</div>';
@@ -1881,7 +1892,7 @@ function bindHTML(){
   if(!DB.on)return '<section class="cf-sec span2"><h3>Inventario real desde Bind</h3><p class="hint">Se activa cuando la tienda está conectada a la base de datos.</p></section>';
   if(!bindCfg){bindLoad();return '<section class="cf-sec span2"><h3>Inventario real desde Bind</h3><p class="hint">Cargando…</p></section>'}
   var B=bindCfg,U=bindUI,nMap=Object.keys(B.mapa).filter(function(k){return B.mapa[k]}).length;
-  var h='<section class="cf-sec span2"><h3>Inventario real desde Bind</h3><p class="hint">La vitrina de cada sucursal se llena sola con las existencias de su almacén en Bind. Se revisa cada 2 minutos mientras haya gente en la tienda. Solo se lee: la tienda nunca cambia nada en Bind.</p>';
+  var h='<section class="cf-sec span2"><h3>Inventario real desde Bind</h3><p class="hint">La vitrina de cada sucursal se llena sola con las existencias de su almacén en Bind. Se revisa cada 3 minutos mientras haya gente en la tienda. Solo se lee: la tienda nunca cambia nada en Bind.</p>';
   if(U.llave===false)h+='<div class="op-err"><p><b>Falta la llave.</b> En Cloudflare, abre el Worker, entra a Settings, Variables and Secrets, y agrega un secreto llamado BIND_API_KEY con la llave de Bind. Luego vuelve a publicar.</p></div>';
   if(U.err)h+='<div class="op-err" role="alert"><p>'+esc(U.err)+'</p></div>';
   if(U.msg)h+='<p class="cf-ex" role="status">'+esc(U.msg)+'</p>';
