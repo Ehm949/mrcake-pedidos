@@ -510,8 +510,8 @@ dialog#pd::backdrop{background:rgba(30,20,24,.55);-webkit-backdrop-filter:blur(4
 .wz-sum{flex:1;min-width:0;font-size:13.5px;line-height:1.25;color:var(--ink-2)}
 .wz-sum b{display:block;color:var(--ink);font-size:16px;font-variant-numeric:tabular-nums}
 .sucs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
-.sc{border:1.5px solid var(--line);background:var(--bg);border-radius:var(--r);padding:14px 16px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px;line-height:1.3;transition:border-color .15s,background .15s,transform .15s}
-.sc:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line));transform:translateY(-2px)}
+.sc{border:1.5px solid var(--line);background:var(--bg);border-radius:var(--r);padding:14px 16px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px;line-height:1.3;transition:border-color .15s,background .15s}
+.sc:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
 .sc b{font-size:17px}
 .sc small{color:var(--ink-2);font-size:13px}
 .sc[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
@@ -587,6 +587,7 @@ dialog#pd::backdrop{background:rgba(30,20,24,.55);-webkit-backdrop-filter:blur(4
 .rules li:last-child{border-bottom:none}
 .wz .grid{grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr))}
 .wz .prod{min-width:0}
+.wz .prod:hover{transform:none}
 @media (max-width:520px){.wz .grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wz .size{flex-wrap:wrap;padding:8px 10px}.wz .size b{font-size:15px}}
 .wz-sum{overflow:hidden}
 .wz-sum,.wz-sum b{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
@@ -906,7 +907,7 @@ function lotesVendidos(id){var n=0;state.reservas.forEach(function(r){if(r.estad
 function lotes(s){
   if(!s)return [];
   if(DB.on){
-    if(!DB.vit[s]){if(!DB.vitL[s]){DB.vitL[s]=1;dbLoad(s,hoyISO()).then(function(){DB.vitL[s]=0;dbRefreshViews()},function(){DB.vitL[s]=0})}return []}
+    if(!DB.vit[s]){if(!DB.vitL[s]){DB.vitL[s]=1;dbLoad(s,hoyISO()).then(function(){DB.vitL[s]=0;if(!DB.vit[s])DB.vit[s]=[];dbRefreshViews()},function(){DB.vitL[s]=0;if(!DB.vit[s])DB.vit[s]=[]})}return []}
     return DB.vit[s].map(function(l){return {id:String(l.id),pid:l.pid,size:l.size,horneado:l.horneado,qty:+l.qty||0,vendidos:+l.vendidos||0}});
   }
   return (state.vitrina[s]||[]).map(function(l){return {id:l.id,pid:l.pid,size:l.size,horneado:l.horneado,qty:l.qty,vendidos:lotesVendidos(l.id)}});
@@ -1194,12 +1195,13 @@ function wzNext(){
 }
 function refreshWizard(){
   if(screen!=='tienda')return;var t=$('#tienda');if(!t||editingIn(t))return;
-  if(wz===1){var sc=$('#sucs');if(sc)sc.innerHTML=sucCards()}
-  else if(wz===2){var c2=$('#wz-c');if(c2)c2.innerHTML=stepEnt()}
-  else if(wz===3){var g=$('#grid');if(g)g.innerHTML=gridHTML()}
-  else if(wz===4){var c=$('#carrito');if(c)c.innerHTML=cartHTML()}
-  else if(wz===5){var c5=$('#wz-c');if(c5)c5.innerHTML=stepExtras()}
-  var fl=$('#flash');if(fl&&(wz<=2||(wz===3&&!sel.vitrina)))fl.outerHTML=flashHTML();
+  function put(el,html){var k=html.replace(/\d\d:\d\d:\d\d/g,'--');if(el&&el.__h!==k){el.innerHTML=html;el.__h=k}}
+  if(wz===1)put($('#sucs'),sucCards());
+  else if(wz===2)put($('#wz-c'),stepEnt());
+  else if(wz===3)put($('#grid'),gridHTML());
+  else if(wz===4)put($('#carrito'),cartHTML());
+  else if(wz===5)put($('#wz-c'),stepExtras());
+  var fl=$('#flash');if(fl&&(wz<=2||(wz===3&&!sel.vitrina))){var fh=flashHTML(),fk=fh.replace(/\d\d:\d\d:\d\d/g,'--');if(fl.__h!==fk){fl.outerHTML=fh;fl=$('#flash');if(fl)fl.__h=fk}}
   updateCartbar();
 }
 /* Paso 1: sucursal */
@@ -1857,6 +1859,47 @@ function frExample(){
   for(var d=0;d<vida;d++){var pct=0;if(F.on!==false)G.t.forEach(function(x){if(+x.p>0&&d>=+x.d&&+x.p>pct)pct=+x.p});out.push('día '+d+': '+$m(Math.round(base*(1-Math.min(70,pct)/100))))}
   return 'Ejemplo con un Tortuga grande de '+$m(base)+' → '+out.join(' · ')+' · día '+G.vida+': se retira.';
 }
+/* Panel: inventario real desde Bind (la llave vive en Cloudflare, nunca aquí) */
+var bindCfg=null,bindUI={alm:null,prods:null,campos:null,err:'',msg:'',busy:false,llave:null,cargando:false};
+function bindLoad(){if(bindUI.cargando||bindCfg||!DB.on||!DB.admin)return;bindUI.cargando=true;
+  dbJSON('/panel/bind/config',{admin:true}).then(function(j){bindUI.cargando=false;bindUI.llave=!!j.llave;bindCfg=j.bind||{on:false,almacenes:{},mapa:{}};if(!bindCfg.almacenes)bindCfg.almacenes={};if(!bindCfg.mapa)bindCfg.mapa={};if(admTab==='config'&&!editingIn($('#panel')))renderPanel()})
+  .catch(function(){bindUI.cargando=false;bindUI.err='No se pudo leer la configuración de Bind. ¿Ya publicaste el Worker nuevo?';bindCfg={on:false,almacenes:{},mapa:{}};if(admTab==='config')renderPanel()})}
+function bindErrTxt(e){var d=(e&&e.detalle)||'';if(d==='sin_llave')return 'Falta guardar la llave de Bind en Cloudflare como secreto con el nombre BIND_API_KEY.';if(d==='bind_401'||d==='bind_403')return 'Bind rechazó la llave (error '+d.slice(5)+'). Revisa que esté completa y vigente.';if(d==='bind_429')return 'Bind dice que ya se usaron las consultas del día. Intenta más tarde.';return 'No se pudo consultar Bind'+(d?' ('+d+')':'')+'.'}
+function bindItems(){var out=[];CATALOGO.forEach(function(p){Object.keys(p.sizes).forEach(function(s){out.push({k:p.id+'|'+s,nombre:p.nombre+(isCake(p)?' '+SIZE_LABEL[s].toLowerCase():''),p:p,size:s})})});return out}
+function bindNorm(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
+function bindAuto(){
+  var n=0,prods=(bindUI.prods||[]).map(function(x){return {id:x.id,w:' '+bindNorm(x.nombre+' '+x.codigo)+' '}});
+  bindItems().forEach(function(it){
+    var base=bindNorm(it.p.base?prod(it.p.base).nombre:it.p.nombre).split(' ').filter(function(w){return w.length>2&&w!=='individual'&&w!=='muffin'}),extra=it.p.cat==='individuales'?['individual','charolita','ind','rebanada']:it.p.cat==='secos'?['muffin','panque']:[it.size==='g'?'grande':'mediano',it.size==='g'?'gde':'med'];
+    var best=null,bs=-1,tie=false;
+    prods.forEach(function(x){if(!base.every(function(w){return x.w.indexOf(' '+w)>-1}))return;var sc=extra.some(function(w){return x.w.indexOf(' '+w)>-1})?2:0;if(it.p.cat!=='individuales'&&/ (individual|charolita|rebanada) /.test(x.w))sc-=2;if(sc>bs){best=x;bs=sc;tie=false}else if(sc===bs)tie=true});
+    var usado=Object.keys(bindCfg.mapa).some(function(k){return best&&bindCfg.mapa[k]===best.id});if(best&&!tie&&bs>=2&&!usado&&!bindCfg.mapa[it.k]){bindCfg.mapa[it.k]=best.id;n++}
+  });
+  return n;
+}
+function bindHTML(){
+  if(!DB.on)return '<section class="cf-sec span2"><h3>Inventario real desde Bind</h3><p class="hint">Se activa cuando la tienda está conectada a la base de datos.</p></section>';
+  if(!bindCfg){bindLoad();return '<section class="cf-sec span2"><h3>Inventario real desde Bind</h3><p class="hint">Cargando…</p></section>'}
+  var B=bindCfg,U=bindUI,nMap=Object.keys(B.mapa).filter(function(k){return B.mapa[k]}).length;
+  var h='<section class="cf-sec span2"><h3>Inventario real desde Bind</h3><p class="hint">La vitrina de cada sucursal se llena sola con las existencias de su almacén en Bind. Se revisa cada 2 minutos mientras haya gente en la tienda. Solo se lee: la tienda nunca cambia nada en Bind.</p>';
+  if(U.llave===false)h+='<div class="op-err"><p><b>Falta la llave.</b> En Cloudflare, abre el Worker, entra a Settings, Variables and Secrets, y agrega un secreto llamado BIND_API_KEY con la llave de Bind. Luego vuelve a publicar.</p></div>';
+  if(U.err)h+='<div class="op-err" role="alert"><p>'+esc(U.err)+'</p></div>';
+  if(U.msg)h+='<p class="cf-ex" role="status">'+esc(U.msg)+'</p>';
+  h+='<div class="cf-row"><b>Paso 1</b><span style="flex:1">Probar la conexión y traer los almacenes de Bind.</span><button class="btn btn-sm" id="bind-test"'+(U.busy?' disabled':'')+'>'+(U.alm?'Volver a probar':'Probar conexión')+'</button></div>';
+  h+='<div class="cf-row"><b>Paso 2</b><span style="flex:1">¿Qué almacén de Bind es cada sucursal?</span></div>'+SUCURSALES.map(function(x){var cur=B.almacenes[x.id]||'';
+    return '<div class="cf-field"><div><label>'+esc(x.nombre)+'</label></div>'+(U.alm?'<select data-bindalm="'+x.id+'" style="width:240px" aria-label="Almacén de '+esc(x.nombre)+'"><option value="">Sin conectar</option>'+U.alm.map(function(a){return '<option value="'+esc(a.id)+'"'+(a.id===cur?' selected':'')+'>'+esc(a.nombre||a.id)+'</option>'}).join('')+'</select>':'<small>'+(cur?'Conectada':'Sin conectar (primero prueba la conexión)')+'</small>')+'</div>'}).join('');
+  h+='<div class="cf-row"><b>Paso 3</b><span style="flex:1">Emparejar cada producto de la tienda con su producto en Bind. Llevas '+nMap+'.</span><button class="btn btn-sm" id="bind-prods"'+(U.busy?' disabled':'')+'>'+(U.prods?'Recargar productos':'Traer productos de Bind')+'</button>'+(U.prods?'<button class="btn btn-sm" id="bind-auto">Emparejar por nombre</button>':'')+'</div>';
+  if(U.prods){
+    var opts=U.prods.slice().sort(function(a,b){return a.nombre.localeCompare(b.nombre)});
+    h+='<p class="hint">Bind mandó '+U.prods.length+' productos'+(U.campos?' (campos: '+esc(U.campos.slice(0,12).join(', '))+')':'')+'. Revisa cada uno: lo que quede en "No sincronizar" se sigue capturando a mano.</p><div class="tbl-wrap" style="max-height:420px;overflow-y:auto"><table><tr><th>Producto de la tienda</th><th>Producto en Bind</th><th>Existencia</th></tr>'+bindItems().map(function(it){var cur=B.mapa[it.k]||'',f=opts.filter(function(o){return o.id===cur})[0];
+      return '<tr><td>'+esc(it.nombre)+'</td><td><select data-bindmap="'+it.k+'" style="max-width:320px" aria-label="Producto de Bind para '+esc(it.nombre)+'"><option value="">No sincronizar</option>'+opts.map(function(o){return '<option value="'+esc(o.id)+'"'+(o.id===cur?' selected':'')+'>'+esc((o.nombre||'(sin nombre)')+(o.codigo?' · '+o.codigo:''))+'</option>'}).join('')+'</select></td><td class="n">'+(f?f.qty:'—')+'</td></tr>'}).join('')+'</table></div>';
+  }
+  h+='<div class="cf-field"><div><label>Paso 4: sincronización automática</label><small>Actívala cuando termines de emparejar.</small></div><select id="bind-on" aria-label="Sincronización con Bind"><option value="0"'+(!B.on?' selected':'')+'>Apagada</option><option value="1"'+(B.on?' selected':'')+'>Encendida</option></select></div>';
+  h+='<div class="cf-row"><span style="flex:1">Probar ahora con una sucursal y ver su vitrina:</span>'+SUCURSALES.map(function(x){return '<button class="btn btn-sm" data-bindsync="'+x.id+'"'+(U.busy||!B.on||!B.almacenes[x.id]?' disabled':'')+'>'+esc(x.nombre)+'</button>'}).join('')+'</div>';
+  h+='<p class="hint" style="margin-top:8px">Cómo calcula la frescura: Bind dice cuántas piezas hay, no cuándo se hornearon. Cuando aparecen piezas nuevas, la tienda las anota como horneadas ese día; cuando bajan, descuenta primero las más viejas. La primera vez, todo lo que haya contará como horneado hoy.</p></section>';
+  return h;
+}
+function bindSave(){if(!bindCfg||!DB.on||!DB.admin)return;dbSaveCfg()}
 function configHTML(){
   var C=state.cfg,B=C.barra,P=C.paquete,E=C.envio;
   function field(label,help,input){return '<div class="cf-field"><div><label>'+label+'</label><small>'+help+'</small></div>'+input+'</div>'}
@@ -1882,6 +1925,7 @@ function configHTML(){
   h+='<section class="cf-sec"><h3>Envío a domicilio</h3><p class="hint">Si está activado, el cliente puede elegir que se lo lleven a su casa.</p>'+
     field('Envío a domicilio','Mostrar la opción en la tienda.','<select data-cfg="envio.on" aria-label="Envío a domicilio"><option value="1"'+(E.on?' selected':'')+'>Activado</option><option value="0"'+(!E.on?' selected':'')+'>Desactivado</option></select>')+
     field('Costo del envío','Se suma al total del pedido.','<label class="cf-in">$<input type="number" min="0" step="5" data-cfg="envio.costo" value="'+E.costo+'" aria-label="Costo del envío"></label>')+'</section>';
+  h+=bindHTML();
   return h+'</div>';
 }
 function panelRow(name,sizeLabel,pid,s){
@@ -1898,7 +1942,8 @@ function panelLoad(){var pk=snapKey(adm.suc,adm.fecha);DB.panelLoading=true;DB.l
     if(e&&(e.status===401||e.status===403)){DB.admin='';try{sessionStorage.removeItem('mrcake-admin')}catch(x){}DB.loginErr=e.error==='falta_password'?'Falta configurar ADMIN_PASSWORD en Cloudflare.':'Tu sesión terminó. Vuelve a escribir la contraseña.';renderPanel()}});
 }
 function dbSaveCfg(){clearTimeout(DB.cfgTimer);DB.cfgTimer=setTimeout(function(){var c=state.cfg;
-  dbJSON('/panel/config',{method:'POST',admin:true,body:{config:{minLead:c.minLead,sugLead:c.sugLead,payMin:c.payMin,customLead:c.customLead,hoyHasta:c.hoyHasta,barra:c.barra,paquete:c.paquete,envio:c.envio,frescura:c.frescura,ofertas:c.ofertas}}})
+  var cf={minLead:c.minLead,sugLead:c.sugLead,payMin:c.payMin,customLead:c.customLead,hoyHasta:c.hoyHasta,barra:c.barra,paquete:c.paquete,envio:c.envio,frescura:c.frescura,ofertas:c.ofertas};if(bindCfg)cf.bind=bindCfg;
+  dbJSON('/panel/config',{method:'POST',admin:true,body:{config:cf}})
     .then(function(){toast('Ajustes guardados en la base de datos')}).catch(function(){toast('No se pudieron guardar los ajustes')})},500)}
 function renderPanel(){
   if(!adm.fecha)adm.fecha=addDays(Math.max(+state.cfg.sugLead||4,+state.cfg.minLead||0));
@@ -1939,6 +1984,10 @@ $('#panel').addEventListener('click',function(e){
   if(b.hasAttribute('data-adm-out')){DB.admin='';DB.loginErr='';DB.panel=null;try{sessionStorage.removeItem('mrcake-admin')}catch(x){}renderPanel();return}
   if(b.hasAttribute('data-ptab')){admTab=b.getAttribute('data-ptab');if(DB.on)DB.panel=null;renderPanel();var pt=$('[role="tab"][data-ptab="'+admTab+'"]');if(pt)pt.focus();return}
   if(b.id==='vt-demo'){b.disabled=true;vtDemo();return}
+  if(b.id==='bind-test'){bindUI.busy=true;bindUI.err='';bindUI.msg='';renderPanel();dbJSON('/panel/bind/almacenes',{admin:true}).then(function(j){bindUI.busy=false;bindUI.alm=j.almacenes||[];bindUI.msg='Conexión correcta: Bind tiene '+bindUI.alm.length+(bindUI.alm.length===1?' almacén.':' almacenes.');renderPanel()}).catch(function(e){bindUI.busy=false;bindUI.err=bindErrTxt(e);renderPanel()});return}
+  if(b.id==='bind-prods'){var al=SUCURSALES.map(function(x){return bindCfg.almacenes[x.id]}).filter(Boolean)[0];if(!al){toast('Primero elige el almacén de al menos una sucursal');return}bindUI.busy=true;bindUI.err='';bindUI.msg='';renderPanel();dbJSON('/panel/bind/inventario?almacen='+encodeURIComponent(al),{admin:true}).then(function(j){bindUI.busy=false;bindUI.prods=j.productos||[];bindUI.campos=j.campos||null;renderPanel()}).catch(function(e){bindUI.busy=false;bindUI.err=bindErrTxt(e);renderPanel()});return}
+  if(b.id==='bind-auto'){var na=bindAuto();bindSave();bindUI.msg=na?'Emparejé '+na+' productos por nombre. Revísalos uno por uno antes de encender la sincronización.':'No encontré coincidencias seguras por nombre. Emparéjalos a mano.';renderPanel();return}
+  if(b.hasAttribute('data-bindsync')){var bs=b.getAttribute('data-bindsync');bindUI.busy=true;bindUI.err='';bindUI.msg='';renderPanel();dbJSON('/panel/bind/sincronizar',{method:'POST',admin:true,body:{sucursal:bs}}).then(function(j){bindUI.busy=false;DB.vit[bs]=j.vitrina||[];bindUI.msg='Sucursal '+suc(bs).nombre+' sincronizada: '+(j.vitrina||[]).reduce(function(t,l){return t+(+l.qty||0)},0)+' piezas en vitrina. Mírala en la pestaña "Vitrina de hoy".';renderPanel()}).catch(function(e){bindUI.busy=false;bindUI.err=bindErrTxt(e);renderPanel()});return}
   if(b.hasAttribute('data-vtdel')){var vid=b.getAttribute('data-vtdel');vtAccion({accion:'borrar',id:vid}).then(function(){toast('Pieza quitada de la vitrina');renderPanel()}).catch(function(){toast('No se pudo quitar')});return}
   if(b.hasAttribute('data-preset')){var P=PRESETS[+b.getAttribute('data-preset')];ofForm={pid:P.pid,pct:P.pct,ini:presetIni(P),hrs:P.hrs,uni:P.uni,max:P.max,suc:''};renderPanel();var fp=$('#of-pid');if(fp)fp.focus();toast('Revisa los datos y toca "Crear oferta"');return}
   if(b.hasAttribute('data-ofstop')){var os=ofById(b.getAttribute('data-ofstop'));if(os){os.off=true;os.fin=Math.min(os.fin,Date.now());ofGuardar();toast('Oferta terminada');renderPanel()}return}
@@ -1955,6 +2004,9 @@ $('#panel').addEventListener('change',function(e){
   if(t.id==='cfg-min'||t.id==='cfg-sug'||t.id==='cfg-cus'){var v=Math.max(0,Math.min(14,parseInt(t.value,10)||0));state.cfg[{'cfg-min':'minLead','cfg-sug':'sugLead','cfg-cus':'customLead'}[t.id]]=v;save();sel.fecha=null;toast('Regla guardada');return}
   if(t.hasAttribute('data-cfg')){var path=t.getAttribute('data-cfg').split('.'),o=state.cfg;for(var i=0;i<path.length-1;i++)o=o[path[i]];var last=path[path.length-1];o[last]=last==='on'?t.value==='1':Math.max(0,parseFloat(t.value)||0);if(path[0]==='frescura'&&last==='p')o[last]=Math.min(70,o[last]);save();var ex=$('#cfg-example');if(ex)ex.textContent=cfgExample();var fx=$('#fr-example');if(fx)fx.textContent=frExample();toast('Guardado');return}
   if(t.id==='cfg-pay'){state.cfg.payMin=+t.value;save();toast('Tiempo para pagar: '+t.value+' minutos');return}
+  if(t.id==='bind-on'&&bindCfg){bindCfg.on=t.value==='1';bindSave();renderPanel();return}
+  if(t.hasAttribute('data-bindalm')&&bindCfg){bindCfg.almacenes[t.getAttribute('data-bindalm')]=t.value;bindSave();return}
+  if(t.hasAttribute('data-bindmap')&&bindCfg){var bk=t.getAttribute('data-bindmap');if(t.value)bindCfg.mapa[bk]=t.value;else delete bindCfg.mapa[bk];bindSave();return}
   if(t.id==='cfg-hoy'){state.cfg.hoyHasta=+t.value;save();toast('Vitrina para hoy hasta las '+t.value+':00');return}
   if(/^of-/.test(t.id)){var k2={'of-pid':'pid','of-pct':'pct','of-ini':'ini','of-hrs':'hrs','of-uni':'uni','of-max':'max','of-suc':'suc'}[t.id];if(k2){ofForm[k2]=t.value;var pv2=$('#of-prev');if(pv2)pv2.textContent=ofPreview()}return}
   if(/^vt-/.test(t.id)){var v2={'vt-pid':'pid','vt-qty':'qty','vt-h':'h'}[t.id];if(v2)vtForm[v2]=t.value;return}
