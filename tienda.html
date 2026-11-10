@@ -1965,7 +1965,8 @@ var XL_ALIAS={'3 leches':'tresleches','tres leches':'tresleches','3 leches cajet
   'charola nevado':'ind-nevado','charola tortuga':'ind-tortuga','charola emperador':'ind-emperador','charola milky way':'ind-milkyway','charola milky':'ind-milkyway','charola nutella':'ind-nutella',
   'charola 3 leches cajeta':'ind-tresleches-cajeta','charola oreo':'ind-oreo','charola pina colada':'ind-pinacolada','rebanadas':'reb-dia','rebanada':'reb-dia','reb cheesecake tortuga':'reb-chtortuga',
   'reb cheesecake blueberry':'reb-chblueberry','reb rollo de mango':'reb-mango','caja de quequitos':'quequitos-6','quequitos':'quequitos-6','caja de brownies':'brownies-4','brownies':'brownies-4',
-  'galletas de avena':'galletas-avena','pan de muerto sencillo':'pan-muerto-sencillo','pan de muerto relleno':'pan-muerto-relleno','pan de muerto':'pan-muerto','rosca':'rosca'};
+  'quequito en caja 6pzas':'quequitos-6','quequito en caja 6 pzas':'quequitos-6','qequito en caja 6pzas':'quequitos-6','quequitos en caja':'quequitos-6','caja quequitos':'quequitos-6',
+  'caja 4 brownie':'brownies-4','caja 4 brownies':'brownies-4','caja de 4 brownies':'brownies-4','galletas de avena':'galletas-avena','pan de muerto sencillo':'pan-muerto-sencillo','pan de muerto relleno':'pan-muerto-relleno','pan de muerto':'pan-muerto','rosca':'rosca'};
 var XL_TAM={'familiar':'g','grande':'g','mediano':'m','chico':'c','individual rebanada':'n','individual':'n','rebanada':'n','otro':'n'};
 function xlPid(nombre){var k=bindNorm(nombre);if(XL_ALIAS[k])return XL_ALIAS[k];for(var i=0;i<CATALOGO.length;i++)if(bindNorm(CATALOGO[i].nombre)===k)return CATALOGO[i].id;return null}
 function xlFecha(v){if(v instanceof Date&&!isNaN(v))return isoLocal(new Date(v.getFullYear(),v.getMonth(),v.getDate()+(v.getHours()>=12?1:0)));
@@ -1984,7 +1985,7 @@ function xlLeer(XLSX,data,nombre){
   var H=R[h].map(bindNorm),col=function(f){for(var k=0;k<H.length;k++)if(f(H[k]))return k;return -1};
   var cS=col(function(x){return x==='sucursal'}),cP=col(function(x){return x==='producto'}),cT=col(function(x){return x.indexOf('tamano')===0}),cI=col(function(x){return x.indexOf('cant inicial')===0}),
       cF=col(function(x){return x.indexOf('caducidad')>-1});if(cF<0&&cI>-1)cF=cI+1;
-  var cD=col(function(x){return x.indexOf('descuento')>-1&&x.indexOf('precio')<0}),cV=col(function(x){return x.indexOf('cant vendida')===0}),cM=col(function(x){return x.indexOf('cant devuelta')===0||x.indexOf('cant merma')===0}),cE=col(function(x){return x.indexOf('estatus')===0});
+  var cD=col(function(x){return x.indexOf('descuento')>-1&&x.indexOf('precio')<0}),cV=col(function(x){return x.indexOf('cant vendida')===0}),cM=col(function(x){return x.indexOf('cant devuelta')===0||x.indexOf('cant merma')===0}),cE=col(function(x){return x.indexOf('estatus')===0}),cR=col(function(x){return x.indexOf('cant restante')===0});
   var filas=R.slice(h+1).filter(function(f){return String(f[cP]||'').trim()});
   var cuenta={};filas.forEach(function(f){var sname=String(f[cS]||'').trim();if(sname)cuenta[sname]=(cuenta[sname]||0)+1});
   var principal=Object.keys(cuenta).sort(function(a,b){return cuenta[b]-cuenta[a]})[0]||'';
@@ -1993,7 +1994,7 @@ function xlLeer(XLSX,data,nombre){
     var sname=String(f[cS]||'').trim();if(sname&&sname!==principal){otraSuc++;return}
     var pid0=xlPid(f[cP]);if(pid0&&cPr>-1){var p0=prod(pid0),sz0=XL_TAM[bindNorm(f[cT])]||'';if(!p0.sizes[sz0]){var ks0=Object.keys(p0.sizes);sz0=ks0.length===1?ks0[0]:''}var pr0=xlNum(f[cPr]);if(sz0&&pr0>0&&pr0<20000)(hist[pid0+'|'+sz0]=hist[pid0+'|'+sz0]||[]).push({cad:xlFecha(f[cF]),pr:pr0})}
     var est=bindNorm(f[cE]);if(est==='vendido'||est==='merma'||est==='transferido'){cerrados++;return}
-    var rest=xlNum(f[cI])-xlNum(f[cV])-(cM>-1?xlNum(f[cM]):0);if(rest<=0){cerrados++;return}
+    var rest=(cR>-1&&f[cR]!==''&&f[cR]!=null&&!isNaN(parseFloat(f[cR])))?Math.round(xlNum(f[cR])):xlNum(f[cI])-xlNum(f[cV])-(cM>-1?xlNum(f[cM]):0);if(rest<=0){cerrados++;return}
     var cad=xlFecha(f[cF]);if(!cad){sinFecha++;return}
     var pid=xlPid(f[cP]);if(!pid){noRec[String(f[cP]).trim()]=(noRec[String(f[cP]).trim()]||0)+1;return}
     var p=prod(pid),sz=XL_TAM[bindNorm(f[cT])]||'';if(!p.sizes[sz]){var ks=Object.keys(p.sizes);sz=ks.length===1?ks[0]:''}
