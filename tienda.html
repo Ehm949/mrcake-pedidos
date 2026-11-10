@@ -587,6 +587,7 @@ dialog#pd::backdrop{background:rgba(30,20,24,.55);-webkit-backdrop-filter:blur(4
 .rules{list-style:none;margin:0 0 12px;padding:0;font-size:14px}
 .rules li{padding:7px 0;border-bottom:1px solid var(--line)}
 .rules li:last-child{border-bottom:none}
+.inv-tbl thead th{position:sticky;top:0;background:var(--surface);z-index:1}.inv-tbl .inv-cat td{background:var(--accent-soft);font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase}.inv-tbl tfoot td{position:sticky;bottom:0;background:var(--surface);border-top:2px solid var(--line)}.inv-tbl th.n,.inv-tbl td.n{text-align:right;white-space:nowrap}
 .cat-tbl{table-layout:fixed;min-width:620px}.cat-tbl th:first-child{width:110px}.cat-tbl th:nth-child(2){width:36%}
 .wz .grid{grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr))}
 .wz .prod{min-width:0}
@@ -1860,6 +1861,61 @@ function cfgExample(){
   var m=B.t2>0?B.t2:B.t1,pct=B.t2>0?B.p2:B.p1;
   return 'Ejemplo: un pedido de '+$m(B.t1)+' recibe '+B.p1+'% de descuento, y uno de '+$m(m)+' o más recibe '+pct+'%.';
 }
+/* Panel: existencias de Bind por sucursal y la suma de todas (solo lectura) */
+var invUI={suc:'todas',data:{},t:{},cargando:0,total:0,err:'',q:'',otros:false};
+function invMapa(){return (bindCfg&&bindCfg.mapa&&Object.keys(bindCfg.mapa).length)?bindCfg.mapa:catBindMap()}
+function invAlm(sid){return bindCfg&&bindCfg.almacenes?bindCfg.almacenes[sid]:''}
+function invSucs(){return SUCURSALES.filter(function(x){return invAlm(x.id)&&(invUI.suc==='todas'||invUI.suc===x.id)})}
+function invLoad(forzar){
+  if(!DB.on||!DB.admin)return;
+  if(!bindCfg){bindLoad();setTimeout(function(){if(bindCfg)invLoad(forzar)},800);return}
+  var falta=invSucs().filter(function(x){var a=invAlm(x.id);return forzar||!invUI.data[a]||Date.now()-invUI.t[a]>120000}).map(function(x){return invAlm(x.id)}).filter(function(a,i,arr){return arr.indexOf(a)===i});
+  if(!falta.length){renderPanel();return}
+  invUI.err='';invUI.cargando=0;invUI.total=falta.length;renderPanel();
+  var pr=Promise.resolve();
+  falta.forEach(function(a){pr=pr.then(function(){return dbJSON('/panel/bind/inventario?almacen='+encodeURIComponent(a),{admin:true}).then(function(j){invUI.data[a]=j.productos||[];invUI.t[a]=Date.now();invUI.cargando++;if(admTab==='bindinv'){var pg=$('#inv-prog');if(pg)pg.textContent='Leyendo Bind: '+invUI.cargando+' de '+invUI.total+' sucursales…'}})})});
+  pr.then(function(){invUI.total=0;if(admTab==='bindinv')renderPanel()}).catch(function(e){invUI.total=0;invUI.err=bindErrTxt(e);if(admTab==='bindinv')renderPanel()});
+}
+function invQty(a,id){var L=invUI.data[a]||[],n=0;for(var i=0;i<L.length;i++)if(L[i].id===id)n+=L[i].qty;return n}
+function invRows(){
+  var M=invMapa(),sucs=invSucs(),q=bindNorm(invUI.q),rows=[],usados={};
+  CATS.forEach(function(c){CATALOGO.filter(function(p){return p.cat===c.id}).forEach(function(p){Object.keys(p.sizes).forEach(function(k){var id=M[p.id+'|'+k];if(!id)return;usados[id]=1;
+    var nm=itemLabel({pid:p.id,size:k});if(q&&bindNorm(nm).indexOf(q)<0)return;
+    rows.push({cat:c.nombre,nombre:nm,vis:p.vis,qs:sucs.map(function(x){return invQty(invAlm(x.id),id)})})})})});
+  if(invUI.otros){var otros={};sucs.forEach(function(x,i){(invUI.data[invAlm(x.id)]||[]).forEach(function(f){if(usados[f.id])return;if(!otros[f.id])otros[f.id]={cat:'Otros de Bind (insumos y demás)',nombre:f.nombre+(f.codigo?' · '+f.codigo:''),qs:sucs.map(function(){return 0})};otros[f.id].qs[i]+=f.qty})});
+    Object.keys(otros).map(function(k){return otros[k]}).filter(function(r){return !q||bindNorm(r.nombre).indexOf(q)>-1}).sort(function(a,b){return a.nombre.localeCompare(b.nombre)}).forEach(function(r){rows.push(r)})}
+  rows.forEach(function(r){r.tot=r.qs.reduce(function(a,b){return a+b},0)});
+  return {rows:rows,sucs:sucs};
+}
+function invCell(n){return '<td class="n"'+(n<0?' style="color:#B3261E;font-weight:700"':(n===0?' style="color:var(--ink-2)"':''))+'>'+n+'</td>'}
+function invTableHTML(){
+  var R=invRows(),sucs=R.sucs,multi=invUI.suc==='todas';
+  if(!sucs.length)return '<p class="empty">Ninguna sucursal tiene almacén de Bind. Elígelos en Configuración, paso 2.</p>';
+  if(sucs.some(function(x){return !invUI.data[invAlm(x.id)]}))return '<p class="hint">Cargando…</p>';
+  if(!R.rows.length)return '<p class="empty">No hay productos que coincidan con la búsqueda.</p>';
+  var h='<div class="tbl-wrap" style="max-height:620px;overflow:auto"><table class="inv-tbl"><thead><tr><th>Producto</th>'+(multi?sucs.map(function(x){return '<th class="n">'+esc(x.nombre)+'</th>'}).join('')+'<th class="n">Total</th>':'<th class="n">Existencia</th>')+'</tr></thead><tbody>',cat='',tot=sucs.map(function(){return 0}),T=0;
+  R.rows.forEach(function(r){if(r.cat!==cat){cat=r.cat;h+='<tr class="inv-cat"><td colspan="'+(multi?sucs.length+2:2)+'">'+esc(cat)+'</td></tr>'}
+    h+='<tr><td>'+esc(r.nombre)+(r.vis===false?' <small style="color:var(--ink-2)">(no está en la tienda)</small>':'')+'</td>'+(multi?r.qs.map(invCell).join('')+'<td class="n"><b>'+r.tot+'</b></td>':invCell(r.qs[0]))+'</tr>';
+    r.qs.forEach(function(v,i){tot[i]+=v});T+=r.tot});
+  h+='</tbody><tfoot><tr><td><b>Total de piezas</b></td>'+(multi?tot.map(function(v){return '<td class="n"><b>'+v+'</b></td>'}).join('')+'<td class="n"><b>'+T+'</b></td>':'<td class="n"><b>'+T+'</b></td>')+'</tr></tfoot></table></div>';
+  return h;
+}
+function invPanelHTML(){
+  if(!DB.on)return '<div class="panel"><p class="hint">Se activa cuando la tienda está conectada a la base de datos.</p></div>';
+  if(!bindCfg){bindLoad();return '<div class="panel"><p class="hint">Cargando…</p></div>'}
+  var h='<div class="chips" style="flex-wrap:wrap;overflow:visible" role="group" aria-label="Sucursal"><button class="chip" data-invsuc="todas" aria-pressed="'+(invUI.suc==='todas')+'"><b>Todas las sucursales</b></button>'+SUCURSALES.map(function(x){return '<button class="chip" data-invsuc="'+x.id+'" aria-pressed="'+(invUI.suc===x.id)+'"'+(invAlm(x.id)?'':' disabled')+'><b>'+esc(x.nombre)+'</b></button>'}).join('')+'</div>';
+  var ts=invSucs().map(function(x){return invUI.t[invAlm(x.id)]}).filter(Boolean),hora=ts.length?new Intl.DateTimeFormat('es-MX',{hour:'numeric',minute:'2-digit'}).format(new Date(Math.min.apply(null,ts))).replace(/\.$/,''):'';
+  h+='<div class="panel"><h3>Existencias en Bind · '+(invUI.suc==='todas'?'Todas las sucursales':'Sucursal '+esc(suc(invUI.suc).nombre))+'</h3><p class="hint">Piezas que Bind tiene en el almacén de cada sucursal'+(hora?', leídas a las '+hora:'')+'. Solo se lee: no cambia nada en Bind.</p>';
+  if(invUI.err)h+='<div class="op-err" role="alert"><p>'+esc(invUI.err)+'</p></div>';
+  if(invUI.total)h+='<p class="cf-ex" id="inv-prog" role="status">Leyendo Bind: '+invUI.cargando+' de '+invUI.total+' sucursales…</p>';
+  h+='<div class="vt-form" style="grid-template-columns:minmax(0,2fr) auto auto auto"><label>Buscar producto<input id="inv-q" value="'+esc(invUI.q)+'" placeholder="Ej. tortuga"></label><label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="inv-otros"'+(invUI.otros?' checked':'')+'> Incluir insumos y otros</label><button class="btn btn-sm" id="inv-refresh"'+(invUI.total?' disabled':'')+'>Actualizar</button><button class="btn btn-sm" id="inv-csv">Descargar</button></div>';
+  h+='<div id="inv-table">'+invTableHTML()+'</div></div>';
+  return h;
+}
+function invCSV(){var R=invRows(),multi=invUI.suc==='todas',q=function(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  var head=['Categoría','Producto'].concat(multi?R.sucs.map(function(x){return x.nombre}).concat(['Total']):['Existencia']);
+  var csv='\ufeff'+head.map(q).join(',')+'\r\n'+R.rows.map(function(r){return [r.cat,r.nombre].concat(multi?r.qs.concat([r.tot]):[r.qs[0]]).map(q).join(',')}).join('\r\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='existencias-bind-'+(multi?'todas':invUI.suc)+'-'+hoyISO()+'.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000)}
 /* Panel: catálogo y precios (los productos vienen de Bind; los precios los pone el dueño) */
 function catalogoPanelHTML(){
   var nVis=CATALOGO.filter(function(p){return p.vis}).length;
@@ -1997,7 +2053,8 @@ function bindHTML(){
       return '<tr><td>'+esc(it.nombre)+'</td><td><select data-bindmap="'+it.k+'" style="max-width:320px" aria-label="Producto de Bind para '+esc(it.nombre)+'"><option value="">No sincronizar</option>'+opts.map(function(o){return '<option value="'+esc(o.id)+'"'+(o.id===cur?' selected':'')+'>'+esc((o.nombre||'(sin nombre)')+(o.codigo?' · '+o.codigo:''))+'</option>'}).join('')+'</select></td><td class="n">'+(f?f.qty:'—')+'</td></tr>'}).join('')+'</table></div>';
   }
   h+='<div class="cf-field"><div><label>Paso 4: sincronización automática</label><small>Actívala cuando termines de emparejar.</small></div><select id="bind-on" aria-label="Sincronización con Bind"><option value="0"'+(!B.on?' selected':'')+'>Apagada</option><option value="1"'+(B.on?' selected':'')+'>Encendida</option></select></div>';
-  h+='<div class="cf-row"><span style="flex:1">Probar ahora con una sucursal y ver su vitrina:</span>'+SUCURSALES.map(function(x){return '<button class="btn btn-sm" data-bindsync="'+x.id+'"'+(U.busy||!B.on||!B.almacenes[x.id]?' disabled':'')+'>'+esc(x.nombre)+'</button>'}).join('')+'</div>';
+  h+='<div class="cf-row"><span style="flex:1"><b>Ver existencias de Bind</b> (solo lectura, no hace falta encender la sincronización):</span><button class="btn btn-sm btn-primary" data-invgo="todas">Todas las sucursales</button>'+SUCURSALES.map(function(x){return '<button class="btn btn-sm" data-invgo="'+x.id+'"'+(B.almacenes[x.id]?'':' disabled title="Primero elige su almacén en el paso 2"')+'>'+esc(x.nombre)+'</button>'}).join('')+'</div>';
+  if(B.on)h+='<div class="cf-row"><span style="flex:1">Sincronizar la vitrina ahora con Bind:</span>'+SUCURSALES.map(function(x){return '<button class="btn btn-sm" data-bindsync="'+x.id+'"'+(U.busy||!B.almacenes[x.id]?' disabled':'')+'>'+esc(x.nombre)+'</button>'}).join('')+'</div>';
   h+='<p class="hint" style="margin-top:8px">Cómo calcula la frescura: Bind dice cuántas piezas hay, no cuándo se hornearon. Cuando aparecen piezas nuevas, la tienda las anota como horneadas ese día; cuando bajan, descuenta primero las más viejas. La primera vez, todo lo que haya contará como horneado hoy.</p></section>';
   return h;
 }
@@ -2062,9 +2119,10 @@ function renderPanel(){
   var list=DB.on?((DB.panel&&DB.panel.k===snapKey(adm.suc,adm.fecha))?DB.panel.pedidos:[]):state.reservas.filter(function(r){return r.sucursal===adm.suc&&r.fecha===adm.fecha&&r.estado!=='cancelado'}).sort(function(a,b){return b.creado-a.creado});
   var venta=list.filter(function(r){return r.estado==='pagado'}).reduce(function(t,r){return t+r.total},0);
   var html='<div class="ph"><div><h2>Panel de cocina</h2><p>Controla lo que se vende en línea y cómo funciona la tienda.</p></div></div>'+(DB.on?'<p class="db-st on"><span class="dot"></span>Conectado a la base de datos. Todos los equipos ven lo mismo; se actualiza cada 10 segundos. <button class="linkbtn" data-adm-out>Cerrar sesión</button></p>':'<p class="db-st off">Modo local: los datos solo se guardan en este navegador.</p>');
-  html+='<div class="ptabs" role="tablist" aria-label="Secciones del panel">'+[['inventario','Inventario y pedidos'],['catalogo','Catálogo y precios'],['vitrina','Vitrina de hoy'],['ofertas','Ofertas relámpago'],['config','Configuración de la tienda']].map(function(t){return '<button role="tab" data-ptab="'+t[0]+'" aria-selected="'+(admTab===t[0])+'">'+t[1]+'</button>'}).join('')+'</div>';
+  html+='<div class="ptabs" role="tablist" aria-label="Secciones del panel">'+[['inventario','Inventario y pedidos'],['catalogo','Catálogo y precios'],['bindinv','Existencias en Bind'],['vitrina','Vitrina de hoy'],['ofertas','Ofertas relámpago'],['config','Configuración de la tienda']].map(function(t){return '<button role="tab" data-ptab="'+t[0]+'" aria-selected="'+(admTab===t[0])+'">'+t[1]+'</button>'}).join('')+'</div>';
   if(admTab==='config'){html+=configHTML()}
   else if(admTab==='catalogo'){html+=catalogoPanelHTML()}
+  else if(admTab==='bindinv'){html+=invPanelHTML()}
   else if(admTab==='vitrina'){html+=vitrinaPanelHTML()}
   else if(admTab==='ofertas'){html+=ofertasPanelHTML()}
   else{
@@ -2086,6 +2144,9 @@ $('#panel').addEventListener('click',function(e){
   if(b.hasAttribute('data-pday')){adm.fecha=shiftDay(adm.fecha,+b.getAttribute('data-pday'));renderPanel();var m=$('[data-pday="'+b.getAttribute('data-pday')+'"]');if(m)m.focus();return}
   if(b.hasAttribute('data-adm-out')){DB.admin='';DB.loginErr='';DB.panel=null;try{sessionStorage.removeItem('mrcake-admin')}catch(x){}renderPanel();return}
   if(b.hasAttribute('data-ptab')){admTab=b.getAttribute('data-ptab');if(DB.on)DB.panel=null;renderPanel();var pt=$('[role="tab"][data-ptab="'+admTab+'"]');if(pt)pt.focus();return}
+  if(b.hasAttribute('data-invgo')||b.hasAttribute('data-invsuc')){invUI.suc=b.getAttribute('data-invgo')||b.getAttribute('data-invsuc');admTab='bindinv';renderPanel();invLoad(false);var ic=$('[data-invsuc="'+invUI.suc+'"]');if(ic)ic.focus();if(b.hasAttribute('data-invgo'))window.scrollTo(0,0);return}
+  if(b.id==='inv-refresh'){invLoad(true);return}
+  if(b.id==='inv-csv'){invCSV();toast('Se descargó la tabla de existencias');return}
   if(b.id==='cat-bind'||b.id==='cat-all'){var O3=state.cfg.catalogo;CATALOGO.forEach(function(p){O3[p.id]=O3[p.id]||{};if(b.id==='cat-all')O3[p.id].v=1;else delete O3[p.id].v});catGuardar();renderPanel();toast(b.id==='cat-all'?'Todos los productos están en la tienda':'Solo los productos con existencias en Bind');return}
   if(b.id==='vt-demo'){b.disabled=true;vtDemo();return}
   if(b.id==='bind-test'){bindUI.busy=true;bindUI.err='';bindUI.msg='';renderPanel();dbJSON('/panel/bind/almacenes',{admin:true}).then(function(j){bindUI.busy=false;bindUI.alm=j.almacenes||[];bindUI.msg='Conexión correcta: Bind tiene '+bindUI.alm.length+(bindUI.alm.length===1?' almacén.':' almacenes.');renderPanel()}).catch(function(e){bindUI.busy=false;bindUI.err=bindErrTxt(e);renderPanel()});return}
@@ -2107,6 +2168,8 @@ $('#panel').addEventListener('input',function(e){
   var t=e.target,k={'of-pid':'pid','of-pct':'pct','of-ini':'ini','of-hrs':'hrs','of-uni':'uni','of-max':'max','of-suc':'suc'}[t.id];
   if(k){ofForm[k]=t.value;var pv=$('#of-prev');if(pv)pv.textContent=ofPreview();return}
   var v={'vt-pid':'pid','vt-qty':'qty','vt-h':'h'}[t.id];if(v)vtForm[v]=t.value;
+  if(t.id==='inv-q'){invUI.q=t.value;var it=$('#inv-table');if(it)it.innerHTML=invTableHTML()}
+  if(t.id==='inv-otros'){invUI.otros=t.checked;var it2=$('#inv-table');if(it2)it2.innerHTML=invTableHTML()}
 });
 $('#panel').addEventListener('change',function(e){
   var t=e.target;
@@ -2117,7 +2180,7 @@ $('#panel').addEventListener('change',function(e){
   if(t.hasAttribute('data-catv')){var cv=t.getAttribute('data-catv'),O=state.cfg.catalogo;O[cv]=O[cv]||{};O[cv].v=t.checked?1:0;catGuardar();toast(prod(cv).nombre+(t.checked?' ahora se vende en línea':' ya no aparece en la tienda'));return}
   if(t.hasAttribute('data-catp')){var cp=t.getAttribute('data-catp').split('|'),val=Math.round(+t.value),O2=state.cfg.catalogo;if(!(val>0)){toast('Escribe un precio mayor a 0');t.value=prod(cp[0]).sizes[cp[1]];return}O2[cp[0]]=O2[cp[0]]||{};O2[cp[0]].p=O2[cp[0]].p||{};O2[cp[0]].p[cp[1]]=val;catGuardar();toast('Precio guardado: '+itemLabel({pid:cp[0],size:cp[1]})+' '+$m(val));return}
   if(t.id==='bind-on'&&bindCfg){bindCfg.on=t.value==='1';bindSave();renderPanel();return}
-  if(t.hasAttribute('data-bindalm')&&bindCfg){bindCfg.almacenes[t.getAttribute('data-bindalm')]=t.value;bindSave();return}
+  if(t.hasAttribute('data-bindalm')&&bindCfg){var ba=t.getAttribute('data-bindalm');bindCfg.almacenes[ba]=t.value;bindSave();renderPanel();var bs2=$('[data-bindalm="'+ba+'"]');if(bs2)bs2.focus();return}
   if(t.hasAttribute('data-bindmap')&&bindCfg){var bk=t.getAttribute('data-bindmap');if(t.value)bindCfg.mapa[bk]=t.value;else delete bindCfg.mapa[bk];bindSave();return}
   if(t.id==='cfg-hoy'){state.cfg.hoyHasta=+t.value;save();toast('Vitrina para hoy hasta las '+t.value+':00');return}
   if(/^of-/.test(t.id)){var k2={'of-pid':'pid','of-pct':'pct','of-ini':'ini','of-hrs':'hrs','of-uni':'uni','of-max':'max','of-suc':'suc'}[t.id];if(k2){ofForm[k2]=t.value;var pv2=$('#of-prev');if(pv2)pv2.textContent=ofPreview()}return}
