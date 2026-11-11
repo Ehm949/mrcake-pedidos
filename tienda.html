@@ -99,8 +99,19 @@ main{padding:0 0 120px}
 
 .marquee{overflow:hidden;background:var(--accent);color:var(--accent-ink);border-radius:var(--r-lg);margin:12px 0 36px;padding:16px 0;transform:rotate(-1deg)}
 .marquee .track-m{display:flex;width:max-content;animation:slide 40s linear infinite}
-.marquee span{font-family:var(--display);font-style:italic;font-weight:500;font-size:clamp(22px,3vw,32px);white-space:nowrap;padding:0 18px;display:inline-flex;align-items:center;gap:36px}
-.marquee span::after{content:"";width:10px;height:10px;border-radius:50%;background:currentColor;opacity:.55}
+.marquee:not(.fotos) span{font-family:var(--display);font-style:italic;font-weight:500;font-size:clamp(22px,3vw,32px);white-space:nowrap;padding:0 18px;display:inline-flex;align-items:center;gap:36px}
+.marquee:not(.fotos) span::after{content:"";width:10px;height:10px;border-radius:50%;background:currentColor;opacity:.55}
+/* Pasarela de fotos de los pasteles a la venta */
+.marquee.fotos{padding:14px 0}
+.marquee.fotos .track-m{align-items:center}
+.marquee.fotos:hover .track-m{animation-play-state:paused}
+.marquee .mq-ph{flex:0 0 auto;width:clamp(104px,13vw,150px);aspect-ratio:1;margin:0 9px;border-radius:22px;background:#fff;overflow:hidden;box-shadow:0 6px 16px rgba(80,20,40,.18);transform:rotate(1deg)}
+.marquee .mq-ph:nth-child(even){transform:rotate(-1deg) translateY(4px)}
+.marquee .mq-ph .ph-wrap,.marquee .mq-ph img.photo{display:block;width:100%;height:100%}
+.marquee .mq-ph img.photo{object-fit:cover}
+.marquee .mq-ph .ph-fb{display:none}
+.marquee .mq-ph .nofoto .ph-fb{display:flex;width:100%;height:100%;align-items:center;justify-content:center}
+.marquee .mq-ph .nofoto img{display:none}
 @keyframes slide{to{transform:translateX(-50%)}}
 
 .demo-note{display:flex;gap:10px;align-items:center;background:var(--amber);color:var(--amber-ink);border-radius:999px;padding:9px 18px;font-size:14px;margin:0 0 22px;width:fit-content;max-width:100%}
@@ -635,7 +646,7 @@ dialog#pd::backdrop{background:rgba(30,20,24,.55);-webkit-backdrop-filter:blur(4
           <div class="float f2"><div class="sl" id="hero-slice"></div><span><b>Nutella</b><small>Tres leches, Nutella y Ferrero</small></span></div>
         </div>
       </div>
-      <div class="marquee" aria-hidden="true"><div class="track-m" id="marquee"></div></div>
+      <div class="marquee fotos" aria-hidden="true"><div class="track-m" id="marquee"></div></div>
     </div>
     <div id="tienda"></div>
   </section>
@@ -1082,7 +1093,7 @@ function dbJSON(path,opt){opt=opt||{};var h={'Content-Type':'application/json'};
 function snapKey(s,f){return s+'|'+f}
 function snapOf(s,f){if(!DB.on)return null;var k=snapKey(s,f);if(!DB.snap[k]){ensureSnap(s,f);return {cupos:{},usados:{},pend:true}}return DB.snap[k]}
 function editingIn(el){var a=document.activeElement;return !!(el&&a&&el.contains(a)&&/INPUT|SELECT|TEXTAREA/.test(a.tagName))}
-function applyCfg(c){if(!c)return;if(c.autoflash)state.cfg.autoflash=c.autoflash;if(c.caducidad&&c.caducidad.t)state.cfg.caducidad=c.caducidad;if(c.catalogo&&typeof c.catalogo==='object'){state.cfg.catalogo=c.catalogo;applyCatalogo()}if(c.frescura&&c.frescura.grupos)state.cfg.frescura=c.frescura;if(Array.isArray(c.ofertas))state.cfg.ofertas=c.ofertas;['minLead','sugLead','payMin','customLead','hoyHasta'].forEach(function(k){if(c[k]!=null)state.cfg[k]=c[k]});['barra','envio'].forEach(function(k){if(c[k])state.cfg[k]=Object.assign({},state.cfg[k],c[k])});if(Array.isArray(c.paquete))state.cfg.paquete=c.paquete;save()}
+function applyCfg(c){if(!c)return;if(c.autoflash)state.cfg.autoflash=c.autoflash;if(c.caducidad&&c.caducidad.t)state.cfg.caducidad=c.caducidad;if(c.catalogo&&typeof c.catalogo==='object'){state.cfg.catalogo=c.catalogo;applyCatalogo();if(typeof mqSig==='string')buildMarquee()}if(c.frescura&&c.frescura.grupos)state.cfg.frescura=c.frescura;if(Array.isArray(c.ofertas))state.cfg.ofertas=c.ofertas;['minLead','sugLead','payMin','customLead','hoyHasta'].forEach(function(k){if(c[k]!=null)state.cfg[k]=c[k]});['barra','envio'].forEach(function(k){if(c[k])state.cfg[k]=Object.assign({},state.cfg[k],c[k])});if(Array.isArray(c.paquete))state.cfg.paquete=c.paquete;save()}
 function setSnap(s,f,j){DB.snap[snapKey(s,f)]={cupos:j.cupos||{},usados:j.usados||{},t:Date.now()};if(Array.isArray(j.vitrina)){DB.vit[s]=j.vitrina;DB.vitT=Date.now()}if(j.precios)DB.precios[s]=j.precios;if(j.ofertas)DB.ofSold=j.ofertas;if(j.config)applyCfg(j.config)}
 function dbLoad(s,f){var k=snapKey(s,f);DB.loading[k]=true;
   return dbJSON('/tienda/estado?sucursal='+encodeURIComponent(s)+'&fecha='+encodeURIComponent(f)).then(function(j){DB.loading[k]=false;setSnap(s,f,j);DB.lastSync=Date.now();return j},function(e){DB.loading[k]=false;throw e})}
@@ -1956,7 +1967,7 @@ function catalogoPanelHTML(){
   h+='<p class="hint" style="margin-top:12px">Complementos (también de Bind): '+COMPLEMENTOS.map(function(c){return esc(c.nombre)+' '+$m(c.p)}).join(' · ')+'.</p></div>';
   return h;
 }
-function catGuardar(){applyCatalogo();save();if(DB.on&&DB.admin)dbSaveCfg()}
+function catGuardar(){applyCatalogo();buildMarquee();save();if(DB.on&&DB.admin)dbSaveCfg()}
 /* Excel de caducidades de cada sucursal (el formato de Mr. Cake: hoja "Caducidades ...", 1 renglón = 1 lote) */
 var XLSX_URL='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 var xlUI={res:null,err:'',busy:false,nombre:''},driveCfg=null;
@@ -2406,13 +2417,19 @@ $$('.views button').forEach(function(b){b.addEventListener('click',function(){
   updateCartbar();window.scrollTo(0,0);
 })});
 
+/* Portada: pasarela con las fotos de los pasteles que están a la venta (los visibles en el catálogo y con foto) */
+var mqSig='';
+function buildMarquee(){var mq=$('#marquee');if(!mq)return;
+  var L=CATALOGO.filter(function(p){return p.vis&&isCake(p)&&p.foto});if(L.length<6)L=CATALOGO.filter(function(p){return p.vis&&p.foto});
+  var sig=L.map(function(p){return p.id}).join();if(sig===mqSig)return;mqSig=sig;
+  var h=L.map(function(p){var sz=Object.keys(p.sizes);return '<span class="mq-ph">'+photoHTML(p.id,false,drawProduct(p.id,sz[sz.length-1],''),p.nombre)+'</span>'}).join('');
+  mq.innerHTML=h+h;mq.style.animationDuration=Math.max(30,L.length*4)+'s'}
 /* Portada */
 (function(){
   var hc=$('#hero-cake');if(hc)hc.innerHTML=photoHTML('tortuga',false,drawProduct('tortuga','g',''),'Pastel Tortuga');
   var hs=$('#hero-slice');if(hs)hs.innerHTML=photoHTML('nutella',true,sliceSVG('nutella'),'Rebanada de Nutella');
   var hp=$('#hero-price');if(hp)hp.textContent='El más pedido · desde '+$m(prod('tortuga').sizes.m);
-  var names=CATALOGO.filter(function(p){return isCake(p)}).map(function(p){return '<span>'+esc(p.nombre)+'</span>'}).join('');
-  var mq=$('#marquee');if(mq)mq.innerHTML=names+names;
+  buildMarquee();
   var fs=$('#foot-suc');if(fs)fs.innerHTML=SUCURSALES.map(function(s){return '<li><b>Sucursal '+esc(s.nombre)+'</b><small>'+esc(s.dir)+'</small></li>'}).join('');
   document.addEventListener('click',function(e){
     var b=e.target.closest('[data-hero]');if(!b)return;
