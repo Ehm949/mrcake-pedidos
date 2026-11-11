@@ -1167,7 +1167,7 @@ function isTracked(it){return !isComp(it.pid)}
 function wantsMsg(it){if(isCustom(it.pid))return true;var p=prod(it.pid);return isCake(p)&&!p.noMsg}
 function basePrice(it){if(isCustom(it.pid))return customCalc(it.custom).total;if(isComp(it.pid)){var c=byId(COMPLEMENTOS,it.pid);return c?c.p:0}return price(it.pid,it.size)}
 function priceOf(it){var b=basePrice(it);return it.pct?Math.round(b*(1-it.pct/100)):b}
-function discTxt(it){if(!it.pct)return '';if(it.lote)return (it.fl?'Oferta relámpago de vitrina, ':'De vitrina, ')+String(it.vtxt||edadTxt(it.edad||0)).toLowerCase()+' (−'+it.pct+'%)';if(it.of)return 'Oferta relámpago (−'+it.pct+'%)';return 'Descuento −'+it.pct+'%'}
+function discTxt(it){if(!it.pct)return '';if(it.lote)return (it.fl?'Oferta relámpago de vitrina':'Precio especial de vitrina')+' (−'+it.pct+'%)';if(it.of)return 'Oferta relámpago (−'+it.pct+'%)';return 'Descuento −'+it.pct+'%'}
 function itemLabel(it){if(isCustom(it.pid))return customLabel(it.custom);if(isComp(it.pid)){var c=byId(COMPLEMENTOS,it.pid);return c?c.nombre:''}var p=prod(it.pid);return p?p.nombre+(isCake(p)?' '+SIZE_LABEL[it.size].toLowerCase():''):''}
 function itemLines(it){
   var h='<li>'+it.qty+' '+esc(itemLabel(it));
@@ -1342,7 +1342,7 @@ function stepEnt(){
   h+='<p class="lbl">'+(sel.modo==='domicilio'?'¿Qué día te lo llevamos?':'¿Qué día pasas por él?')+'</p><div class="chips" role="group" aria-label="Día">';
   h+='<button class="chip hoy" data-hoy="1" aria-pressed="'+!!sel.vitrina+'"'+(ok||sel.vitrina?'':' disabled')+' aria-label="Hoy, de la vitrina'+(mx?', hasta '+mx+'% de descuento':'')+'"><small>Hoy</small><b>Vitrina</b><small>'+(L.length?(hoyAbierto()?(mx?'hasta −'+mx+'%':L.length+' listos'):'cerró por hoy'):'sin piezas hoy')+'</small></button>';
   h+=days.map(function(d){var dt=dateOf(d);return '<button class="chip day" data-fecha="'+d+'" aria-pressed="'+(!sel.vitrina&&sel.fecha===d)+'" aria-label="'+esc(fFecha.format(dt))+'"><small>'+esc(fWd.format(dt).replace('.',''))+'</small><b>'+dt.getDate()+'</b><small>'+esc(fMon.format(dt).replace('.',''))+'</small></button>'}).join('')+'</div>';
-  h+=sel.vitrina?'<p class="vt-note"><b>Hoy compras lo que ya está horneado en la vitrina de Sucursal '+esc(s.nombre)+'.</b> Entre más cerca está de su fecha de caducidad, más descuento lleva, y siempre te decimos la fecha. '+(sel.modo==='domicilio'?'Te lo llevamos hoy mismo.':'Recógelo hoy antes de las '+state.cfg.hoyHasta+':00.')+'</p>':'<p class="note">Horneamos tu pedido para el día que elijas. Los pasteles personalizados se piden con '+state.cfg.customLead+' días de anticipación.</p>';
+  h+=sel.vitrina?'<p class="vt-note"><b>Hoy compras lo que ya está horneado en la vitrina de Sucursal '+esc(s.nombre)+'.</b> Son piezas listas para llevar, algunas con precio especial y ofertas relámpago por tiempo limitado. '+(sel.modo==='domicilio'?'Te lo llevamos hoy mismo.':'Recógelo hoy antes de las '+state.cfg.hoyHasta+':00.')+'</p>':'<p class="note">Horneamos tu pedido para el día que elijas. Los pasteles personalizados se piden con '+state.cfg.customLead+' días de anticipación.</p>';
   return h;
 }
 /* Paso 3: productos */
@@ -1373,15 +1373,17 @@ function gridHTML(){
     return '<article class="prod"><button class="thumb thumb-btn" data-detail="'+p.id+'" aria-label="Ver detalles e ingredientes de '+esc(p.nombre)+'">'+photoHTML(p.id,false,drawProduct(p.id,sizes[sizes.length-1],''),p.nombre)+'</button><h3>'+esc(p.nombre)+'</h3>'+(anyOf?'<span class="flag fl-flag">'+BOLT+'Oferta relámpago</span>':(p.top?'<span class="flag">Más vendido</span>':''))+'<p>'+esc(p.desc)+'</p><button class="linkbtn more" data-detail="'+p.id+'">Ver ingredientes</button><div class="sizes">'+sizes.map(function(s){return sizeBtn(p,s)}).join('')+'</div></article>';
   }).join('')+'</div>';
 }
+/* Lo que ve el cliente de una pieza de vitrina: nunca la fecha de caducidad ni de horneado (eso solo lo ven los empleados en el panel) */
+function txtCliente(l){return l.flash?'Oferta relámpago, por tiempo limitado':l.pct?'Precio especial de vitrina':'Listo para llevar hoy'}
 function loteBtn(l,withAge){
   var p=prod(l.pid),base=price(l.pid,l.size),pr=lotePrecio(l),left=l.disp-inLote(l.id),out=left<=0,nm=p.nombre+(isCake(p)?' '+SIZE_LABEL[l.size].toLowerCase():'');
-  return '<button class="size" data-lote="'+l.id+'"'+(out?' disabled':'')+' aria-label="'+esc(nm+', '+l.txt.toLowerCase()+', '+$m(pr)+(l.pct?', '+l.pct+'% de descuento':'')+(out?', ya están todos en tu pedido':', quedan '+left))+'"><span>'+(withAge?esc(isCake(p)?SIZE_LABEL[l.size]:'Pieza')+'<small>'+esc(l.txt)+(l.pct?' · −'+l.pct+'%':'')+'</small>':(out?'Ya están en tu pedido':(left<=3?'Quedan '+left:'Disponible')+(personas(p.id,l.size)?'<small>'+esc(personas(p.id,l.size))+'</small>':'')))+'</span><b>'+(l.pct?'<s>'+$m(base)+'</s>':'')+$m(pr)+'</b></button>';
+  return '<button class="size" data-lote="'+l.id+'"'+(out?' disabled':'')+' aria-label="'+esc(nm+', '+txtCliente(l).toLowerCase()+', '+$m(pr)+(l.pct?', '+l.pct+'% de descuento':'')+(out?', ya están todos en tu pedido':', quedan '+left))+'"><span>'+(withAge?esc(isCake(p)?SIZE_LABEL[l.size]:'Pieza')+'<small>'+esc(txtCliente(l))+(l.pct?' · −'+l.pct+'%':'')+'</small>':(out?'Ya están en tu pedido':(left<=3?'Quedan '+left:'Disponible')+(personas(p.id,l.size)?'<small>'+esc(personas(p.id,l.size))+'</small>':'')))+'</span><b>'+(l.pct?'<s>'+$m(base)+'</s>':'')+$m(pr)+'</b></button>';
 }
 function vitrinaGrid(){
   var L=vitrinaVenta(sel.suc);
   if(!L.length)return '<p class="empty">Ya no quedan piezas en la vitrina de esta sucursal por hoy. Regresa al paso 2 y elige otro día para pedirlo recién horneado.</p>';
   return '<div class="grid">'+L.map(function(l){var p=prod(l.pid),isC=isCake(p),nm=p.nombre+(isC?' '+SIZE_LABEL[l.size].toLowerCase():'');
-    return '<article class="prod">'+(l.flash?'<span class="flag fl-flag">'+BOLT+'Relámpago · <span data-cdto="'+l.flash.fin+'">'+hms(l.flash.fin-Date.now())+'</span></span>':'')+(l.pct?'<span class="disc-tag">−'+l.pct+'%</span>':(l.flash?'':'<span class="flag">'+(l.caduca?'Listo para llevar':'Recién horneado')+'</span>'))+'<button class="thumb thumb-btn" data-detail="'+p.id+'" aria-label="Ver ingredientes de '+esc(p.nombre)+'">'+photoHTML(p.id,false,drawProduct(p.id,isC?l.size:Object.keys(p.sizes)[0],''),p.nombre)+'</button><h3>'+esc(nm)+'</h3><p class="vt-age">'+esc(l.txt)+'</p><div class="sizes">'+loteBtn(l,false)+'</div></article>';
+    return '<article class="prod">'+(l.flash?'<span class="flag fl-flag">'+BOLT+'Relámpago · <span data-cdto="'+l.flash.fin+'">'+hms(l.flash.fin-Date.now())+'</span></span>':'')+(l.pct?'<span class="disc-tag">−'+l.pct+'%</span>':(l.flash?'':'<span class="flag">Listo para llevar</span>'))+'<button class="thumb thumb-btn" data-detail="'+p.id+'" aria-label="Ver ingredientes de '+esc(p.nombre)+'">'+photoHTML(p.id,false,drawProduct(p.id,isC?l.size:Object.keys(p.sizes)[0],''),p.nombre)+'</button><h3>'+esc(nm)+'</h3><p class="vt-age">'+esc(txtCliente(l))+'</p><div class="sizes">'+loteBtn(l,false)+'</div></article>';
   }).join('')+'</div>';
 }
 /* Ofertas relámpago arriba de la tienda */
@@ -1539,7 +1541,7 @@ function redrawDesigner(focusSel){var g=$('#grid');if(!g)return;g.innerHTML=desi
 function buildExtras(){
   var hasCake=cart.some(function(it){return wantsMsg(it)}),out=[];
   COMPLEMENTOS.forEach(function(c){if(c.cake&&!hasCake)return;if(c.id==='x-topper'&&cart.some(function(it){return isCustom(it.pid)&&it.custom.deco.indexOf('topper')>-1}))return;if(inCart(c.id,'u'))return;out.push({pid:c.id,size:'u'})});
-  if(sel.vitrina)vitrinaVenta(sel.suc).filter(function(l){var g=grupoDe(l.pid);return (g==='individuales'||g==='muffins')&&!inLote(l.id)}).slice(0,2).forEach(function(l){out.splice(3,0,{pid:l.pid,size:l.size,lote:l.id,why:'De vitrina: '+l.txt.toLowerCase()+(l.pct?', −'+l.pct+'%':'')})});
+  if(sel.vitrina)vitrinaVenta(sel.suc).filter(function(l){var g=grupoDe(l.pid);return (g==='individuales'||g==='muffins')&&!inLote(l.id)}).slice(0,2).forEach(function(l){out.splice(3,0,{pid:l.pid,size:l.size,lote:l.id,why:'De vitrina, listo para llevar'+(l.pct?', −'+l.pct+'%':'')})});
   else [['muffin-chispas','n','Para el desayuno del día siguiente'],['ind-nutella','n','Para alguien que no pueda ir a la fiesta']].forEach(function(x){if(!inCart(x[0],x[1])&&disponible(sel.suc,sel.fecha,x[0],x[1])>0)out.splice(4,0,{pid:x[0],size:x[1],why:x[2]})});
   return out.slice(0,7);
 }
@@ -2117,19 +2119,19 @@ function ofLI(o){
 function ofertasPanelHTML(){
   if(!ofForm.ini)ofForm.ini=nextHour();
   var rank={activa:0,prox:1,agotada:2,fin:3},L=(state.cfg.ofertas||[]).filter(function(o){return !o.oculta}).slice().sort(function(a,b){return rank[ofEstado(a)]-rank[ofEstado(b)]||b.inicio-a.inicio});
-  var A=afCfg(),DS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  var h='<div class="panel" style="margin-bottom:20px"><h3>Ofertas relámpago automáticas</h3><p class="hint">Una vez al día, a la hora que elijas, el sistema revisa la vitrina de cada sucursal (lotes de su Excel) y lanza una oferta relámpago para los productos con más piezas que caducan pronto y todavía no tienen ese descuento. Así se mueve lo que se haría merma. En la vitrina se usa el mayor descuento, no se suman.</p>'+
-    '<div class="vt-form" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">'+
+  var A=afCfg(),DS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],HH=[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22];
+  var h='<div class="panel" style="margin-bottom:20px"><h3>Ofertas relámpago automáticas</h3><p class="hint">Siempre hay una oferta relámpago corriendo en cada sucursal con Excel. El sistema elige el pastel que está más cerca de caducar (si hay varios igual de urgentes, los va rotando y prefiere el que tiene más piezas). Cuando se acaba el tiempo o se venden todas las piezas, lanza la siguiente sola. El descuento de la oferta siempre es mayor que el que ya tenía por caducidad, para que valga la pena. Los clientes no ven fechas de caducidad, solo la oferta y su cuenta regresiva.</p>'+
+    '<div class="vt-form" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">'+
     '<label>Estado<select data-af="on"><option value="1"'+(A.on?' selected':'')+'>Encendidas</option><option value="0"'+(A.on?'':' selected')+'>Apagadas</option></select></label>'+
-    '<label>Empiezan a las<select data-af="hora">'+[9,10,11,12,13,14,15,16,17,18,19].map(function(v){return '<option value="'+v+'"'+(+A.hora===v?' selected':'')+'>'+v+':00</option>'}).join('')+'</select></label>'+
-    '<label>Duran<select data-af="horas">'+[1,2,3,4,5,6].map(function(v){return '<option value="'+v+'"'+(+A.horas===v?' selected':'')+'>'+v+(v===1?' hora':' horas')+'</option>'}).join('')+'</select></label>'+
-    '<label>Descuento<select data-af="pct">'+[10,15,20,25,30,35,40].map(function(v){return '<option value="'+v+'"'+(+A.pct===v?' selected':'')+'>'+v+'%</option>'}).join('')+'</select></label>'+
-    '<label>Productos por sucursal<select data-af="n">'+[1,2,3,4,5].map(function(v){return '<option value="'+v+'"'+(+A.n===v?' selected':'')+'>'+v+'</option>'}).join('')+'</select></label>'+
-    '<label>Que caduquen en<select data-af="dentro">'+[1,2,3,4,5].map(function(v){return '<option value="'+v+'"'+(+A.dentro===v?' selected':'')+'>'+v+(v===1?' día o menos':' días o menos')+'</option>'}).join('')+'</select></label>'+
-    '<label>Mínimo de piezas<select data-af="minPz">'+[1,2,3,4,5].map(function(v){return '<option value="'+v+'"'+(+A.minPz===v?' selected':'')+'>'+v+'</option>'}).join('')+'</select></label>'+
+    '<label>Desde las<select data-af="desde">'+HH.map(function(v){return '<option value="'+v+'"'+(+A.desde===v?' selected':'')+'>'+v+':00</option>'}).join('')+'</select></label>'+
+    '<label>Hasta las<select data-af="hasta">'+HH.map(function(v){return '<option value="'+v+'"'+(+A.hasta===v?' selected':'')+'>'+v+':00</option>'}).join('')+'</select></label>'+
+    '<label>Cada oferta dura<select data-af="horas">'+[0.5,1,1.5,2,3,4].map(function(v){return '<option value="'+v+'"'+(+A.horas===v?' selected':'')+'>'+(v<1?'30 minutos':v===1?'1 hora':v+' horas')+'</option>'}).join('')+'</select></label>'+
+    '<label>Descuento mínimo<select data-af="pct">'+[10,15,20,25,30,35,40].map(function(v){return '<option value="'+v+'"'+(+A.pct===v?' selected':'')+'>'+v+'%</option>'}).join('')+'</select></label>'+
+    '<label>Extra sobre el de caducidad<select data-af="extra">'+[5,10,15,20].map(function(v){return '<option value="'+v+'"'+(+A.extra===v?' selected':'')+'>+'+v+'%</option>'}).join('')+'</select></label>'+
+    '<label>Ofertas a la vez por sucursal<select data-af="n">'+[1,2,3].map(function(v){return '<option value="'+v+'"'+(+A.n===v?' selected':'')+'>'+v+'</option>'}).join('')+'</select></label>'+
     '<label>Máximo por pedido<select data-af="max">'+[0,1,2,3,5].map(function(v){return '<option value="'+v+'"'+(+A.max===v?' selected':'')+'>'+(v?v:'Sin máximo')+'</option>'}).join('')+'</select></label></div>'+
     '<div class="chips" role="group" aria-label="Días">'+DS.map(function(d,i){return '<button class="chip" data-afdia="'+i+'" aria-pressed="'+(A.dias.indexOf(i)>-1)+'"><b>'+d+'</b></button>'}).join('')+'</div>'+
-    '<div class="row" style="margin-top:12px"><button class="btn btn-sm" id="af-probar"'+(DB.on?'':' disabled')+'>Probar ahora</button><span class="hint">Crea las ofertas de hoy en este momento para que veas cuáles saldrían (aunque estén apagadas).</span></div>'+
+    '<div class="row" style="margin-top:12px"><button class="btn btn-sm" id="af-probar"'+(DB.on?'':' disabled')+'>Lanzar ahora</button><span class="hint">Revisa todas las sucursales en este momento y lanza la oferta que falte (fuera de horario también).</span></div>'+
     (afUI.msg?'<p class="cf-ex" role="status">'+esc(afUI.msg)+'</p>':'')+'</div>';
   h+='<div class="pgrid"><div class="panel"><h3>Nueva oferta relámpago</h3><p class="hint">Un descuento que dura pocas horas, con piezas limitadas. Sale arriba de la tienda con cuenta regresiva y las piezas que quedan. No se suma con otros descuentos.</p>';
   h+='<p class="lbl" style="margin-top:0">Sugerencias para empezar (llenan el formulario; tú decides si la creas)</p><div class="presets">'+PRESETS.map(function(p,i){return '<button class="preset" data-preset="'+i+'"><b>'+esc(p.t)+'</b><small>'+esc(p.why)+'</small></button>'}).join('')+'</div>';
@@ -2145,7 +2147,7 @@ function ofertasPanelHTML(){
   return h;
 }
 var afUI={msg:''};
-function afCfg(){var A=state.cfg.autoflash||{};var D={on:false,hora:16,horas:3,pct:20,n:2,dentro:3,minPz:2,max:2,dias:[1,2,3,4]};Object.keys(D).forEach(function(k){if(A[k]==null)A[k]=D[k]});state.cfg.autoflash=A;return A}
+function afCfg(){var A=state.cfg.autoflash||{};var D={v:2,on:true,desde:9,hasta:20,horas:2,pct:20,extra:10,n:1,max:2,dias:[0,1,2,3,4,5,6]};if(A.v!==2)A={max:A.max!=null?A.max:2};Object.keys(D).forEach(function(k){if(A[k]==null)A[k]=D[k]});state.cfg.autoflash=A;return A}
 function ofGuardar(){save();lastOfSig=ofSig();if(DB.on&&DB.admin)dbSaveCfg()}
 function ofCrear(){
   var f=ofForm,pp=f.pid.split('|'),ini=new Date(f.ini).getTime();
@@ -2291,7 +2293,7 @@ $('#panel').addEventListener('click',function(e){
   if(b.id==='inv-refresh'){invLoad(true);return}
   if(b.id==='inv-csv'){invCSV();toast('Se descargó la tabla de existencias');return}
   if(b.hasAttribute('data-afdia')){var A2=afCfg(),di=+b.getAttribute('data-afdia'),ix=A2.dias.indexOf(di);if(ix>-1)A2.dias.splice(ix,1);else A2.dias.push(di);save();if(DB.on&&DB.admin)dbSaveCfg();renderPanel();var bd=$('[data-afdia="'+di+'"]');if(bd)bd.focus();return}
-  if(b.id==='af-probar'){b.disabled=true;afUI.msg='';dbSaveCfg(function(){dbJSON('/panel/autoflash/probar',{method:'POST',admin:true,body:{}}).then(function(j){if(j.config)applyCfg(j.config);lastOfSig=ofSig();var c=j.creadas||[];afUI.msg=c.length?(c.length===1?'Se creó 1 oferta: ':'Se crearon '+c.length+' ofertas: ')+c.map(function(o){return itemLabel({pid:o.pid,size:o.size})+' en '+suc(o.suc).nombre+' ('+o.pz+(o.pz===1?' pieza)':' piezas)')}).join(', ')+'.':'No hubo productos que cumplan las reglas hoy (piezas suficientes que caduquen pronto y sin un descuento mayor).';renderPanel()}).catch(function(){afUI.msg='No se pudieron crear las ofertas. ¿Ya publicaste el Worker nuevo?';renderPanel()})});return}
+  if(b.id==='af-probar'){b.disabled=true;afUI.msg='';dbSaveCfg(function(){dbJSON('/panel/autoflash/probar',{method:'POST',admin:true,body:{}}).then(function(j){if(j.config)applyCfg(j.config);lastOfSig=ofSig();var c=j.creadas||[];afUI.msg=c.length?(c.length===1?'Se lanzó 1 oferta: ':'Se lanzaron '+c.length+' ofertas: ')+c.map(function(o){return itemLabel({pid:o.pid,size:o.size})+' en '+suc(o.suc).nombre+' ('+o.pz+(o.pz===1?' pieza)':' piezas)')}).join(', ')+'.':(j.activas?'Ya hay '+j.activas+(j.activas===1?' oferta corriendo':' ofertas corriendo')+'; la siguiente sale sola cuando termine.':'No hay piezas del Excel para ofertar (las sucursales necesitan su Excel conectado y con piezas pendientes).');renderPanel()}).catch(function(){afUI.msg='No se pudieron crear las ofertas. ¿Ya publicaste el Worker nuevo?';renderPanel()})});return}
   if(b.id==='cat-bind'||b.id==='cat-all'){var O3=state.cfg.catalogo;CATALOGO.forEach(function(p){O3[p.id]=O3[p.id]||{};if(b.id==='cat-all')O3[p.id].v=1;else delete O3[p.id].v});catGuardar();renderPanel();toast(b.id==='cat-all'?'Todos los productos están en la tienda':'Solo los productos con existencias en Bind');return}
   if(b.id==='xl-cancel'){xlUI.res=null;xlUI.err='';renderPanel();return}
   if(b.id==='xl-import'&&xlUI.res){var xs=adm.suc,nL=xlUI.res.lotes.length;b.disabled=true;vtAccion({accion:'importar',lotes:xlUI.res.lotes,precios:xlUI.res.precios}).then(function(){xlUI.res=null;toast('Listo: '+nL+' lotes del Excel en la vitrina de Sucursal '+suc(xs).nombre);renderPanel()}).catch(function(){b.disabled=false;toast('No se pudo importar el Excel')});return}
@@ -2330,7 +2332,7 @@ $('#panel').addEventListener('change',function(e){
   if(t.id==='xl-drive'&&driveCfg){var lk=t.value.trim(),xs3=adm.suc;if(/\/folders\//.test(lk)){xlUI.err='Ese link es de una carpeta. Abre el Excel que está dentro, toca Compartir → Copiar vínculo, y pega ese link.';renderPanel();return}driveCfg[xs3]=lk;xlUI.err='';dbSaveCfg(lk?function(){xlSincronizar(xs3)}:null);return}
   if(t.hasAttribute('data-catv')){var cv=t.getAttribute('data-catv'),O=state.cfg.catalogo;O[cv]=O[cv]||{};O[cv].v=t.checked?1:0;catGuardar();toast(prod(cv).nombre+(t.checked?' ahora se vende en línea':' ya no aparece en la tienda'));return}
   if(t.hasAttribute('data-catp')){var cp=t.getAttribute('data-catp').split('|'),val=Math.round(+t.value),O2=state.cfg.catalogo;if(!(val>0)){toast('Escribe un precio mayor a 0');t.value=prod(cp[0]).sizes[cp[1]];return}O2[cp[0]]=O2[cp[0]]||{};O2[cp[0]].p=O2[cp[0]].p||{};O2[cp[0]].p[cp[1]]=val;catGuardar();toast('Precio guardado: '+itemLabel({pid:cp[0],size:cp[1]})+' '+$m(val));return}
-  if(t.hasAttribute('data-af')){var A3=afCfg(),ka=t.getAttribute('data-af');A3[ka]=ka==='on'?t.value==='1':+t.value;save();if(DB.on&&DB.admin)dbSaveCfg();toast(ka==='on'?(A3.on?'Ofertas automáticas encendidas':'Ofertas automáticas apagadas'):'Guardado');return}
+  if(t.hasAttribute('data-af')){var A3=afCfg(),ka=t.getAttribute('data-af');A3[ka]=ka==='on'?t.value==='1':+t.value;if(ka==='desde'&&A3.hasta<=A3.desde)A3.hasta=Math.min(22,A3.desde+1);if(ka==='hasta'&&A3.hasta<=A3.desde)A3.desde=Math.max(6,A3.hasta-1);save();if(DB.on&&DB.admin)dbSaveCfg();toast(ka==='on'?(A3.on?'Ofertas automáticas encendidas':'Ofertas automáticas apagadas'):'Guardado');return}
   if(t.id==='bind-on'&&bindCfg){bindCfg.on=t.value==='1';bindSave();renderPanel();return}
   if(t.hasAttribute('data-bindalm')&&bindCfg){var ba=t.getAttribute('data-bindalm');bindCfg.almacenes[ba]=t.value;bindSave();renderPanel();var bs2=$('[data-bindalm="'+ba+'"]');if(bs2)bs2.focus();return}
   if(t.hasAttribute('data-bindmap')&&bindCfg){var bk=t.getAttribute('data-bindmap');if(t.value)bindCfg.mapa[bk]=t.value;else delete bindCfg.mapa[bk];bindSave();return}
