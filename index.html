@@ -1995,7 +1995,7 @@ function loadOpenpay(){
     return loadScript('https://js.openpay.mx/openpay.v1.min.js').then(function(){return loadScript('https://js.openpay.mx/openpay-data.v1.min.js')});
   }).then(function(){
     OpenPay.setId(opCfg.merchantId);OpenPay.setApiKey(opCfg.publicKey);OpenPay.setSandboxMode(!!opCfg.sandbox);
-    deviceId=OpenPay.deviceData.setup('card-form','device_session_id');
+    try{deviceId=OpenPay.deviceData.setup('card-form','device_session_id')}catch(x){deviceId=''}
     return opCfg;
   }).catch(function(e){opLoading=null;throw e});
   return opLoading;
@@ -2005,7 +2005,13 @@ function cardMsg(e){
   var m={'3001':'El banco rechazó la tarjeta. Intenta con otra o paga por transferencia.','3002':'La tarjeta está vencida.','3003':'La tarjeta no tiene fondos suficientes.','3004':'El banco rechazó la tarjeta por seguridad.','3005':'El banco rechazó la tarjeta por seguridad.','3006':'Esta tarjeta no permite este tipo de compra.','2004':'El número de tarjeta no es válido.','2005':'La fecha de vencimiento ya pasó.','2006':'Falta el código de seguridad.','1001':'Revisa los datos de la tarjeta.'}[c];
   if(m)return m;
   if(e&&e.error==='origen_no_permitido')return 'El servidor no reconoce esta página. Revisa ALLOWED_ORIGINS en Cloudflare.';
-  return (e&&e.detalle)||'No se pudo procesar el pago. Revisa tu conexión e intenta de nuevo.';
+  if(e&&e.error==='sin_dispositivo')return 'Tu navegador bloqueó la verificación antifraude de Openpay. Si usas un bloqueador de anuncios (o el navegador Brave), desactívalo para esta página y vuelve a intentar. (código: sin_dispositivo)';
+  if(e&&e.error==='datos_invalidos')return 'Faltaron datos para cobrar. Recarga la página e intenta de nuevo. (código: datos_invalidos)';
+  if(e&&e.error==='redireccion_invalida')return 'La dirección de regreso del banco no coincide con ALLOWED_ORIGINS en Cloudflare. (código: redireccion_invalida)';
+  if(e&&e.detalle)return e.detalle+(c?' (código: '+c+')':(e.error?' (código: '+e.error+')':''));
+  if(e&&e.error)return 'No se pudo procesar el pago. (código: '+e.error+')';
+  if(e instanceof TypeError)return 'No hubo conexión con el servidor de pagos. Revisa tu internet e intenta de nuevo. (código: red)';
+  return 'No se pudo procesar el pago. Intenta de nuevo. (código: '+esc(String(e&&e.message||e||'desconocido')).slice(0,60)+')';
 }
 function cardHTML(r){
   var c=r.card||{};
@@ -2034,10 +2040,11 @@ function pagarTarjeta(r){
     return new Promise(function(ok,fail){
       OpenPay.token.create({card_number:num,holder_name:name,expiration_month:exp.slice(0,2),expiration_year:exp.slice(2),cvv2:cvv},
         function(res){ok(res.data.id)},
-        function(e){fail({codigo:e&&e.data&&e.data.error_code,detalle:e&&e.data&&e.data.description})});
+        function(e){var d=(e&&e.data)||{};fail({codigo:d.error_code||(e&&e.status)||'token',detalle:d.description?'Openpay: '+d.description:'Openpay no aceptó la tarjeta de prueba ni la llave pública.'})});
     });
   }).then(function(token){
     num=exp=cvv='';
+    if(!deviceId)throw {error:'sin_dispositivo'};
     r.card={procesando:true};renderTienda();
     return fetch(pagosApi()+'/cargo-tarjeta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folio:r.folio,monto:r.total,nombre:r.nombre,telefono:r.telefono,token_id:token,device_session_id:deviceId,redirect_url:location.origin+location.pathname+'?pago3ds='+encodeURIComponent(r.folio)})})
       .then(function(x){return x.json().then(function(j){if(!x.ok)throw j;return j})});
