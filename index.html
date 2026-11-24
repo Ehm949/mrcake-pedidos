@@ -2040,7 +2040,7 @@ function pagarTarjeta(r){
     return new Promise(function(ok,fail){
       OpenPay.token.create({card_number:num,holder_name:name,expiration_month:exp.slice(0,2),expiration_year:exp.slice(2),cvv2:cvv},
         function(res){ok(res.data.id)},
-        function(e){var d=(e&&e.data)||{};fail({codigo:d.error_code||(e&&e.status)||'token',detalle:d.description?'Openpay: '+d.description:'Openpay no aceptó la tarjeta de prueba ni la llave pública.'})});
+        function(e){try{console.error('Openpay token',JSON.stringify(e))}catch(x){}var d=(e&&e.data)||{},st=e&&e.status;fail({codigo:d.error_code||('token-'+(st!=null?st:'x')),detalle:d.description?'Openpay: '+d.description:(!st?'El navegador no pudo conectarse con Openpay (lo suele bloquear un bloqueador de anuncios, una extensión o la red). Prueba en una ventana de incógnito o en tu celular con datos.':'Openpay respondió '+st+' sin explicación. Revisa que el ID de comercio y la llave pública sean del mismo panel de pruebas.')})});
     });
   }).then(function(token){
     num=exp=cvv='';
