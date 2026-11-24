@@ -1,0 +1,28 @@
+name: Fotos WebP
+
+# Se corre a mano: pestaÃ±a Actions â†’ "Fotos WebP" â†’ Run workflow.
+# VuÃ©lvela a correr cuando agreguen pasteles o cambien fotos en Bind.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fotos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pillow==10.4.0
+      - run: python herramientas/fotos_webp.py
+      - name: Guardar las fotos en el repositorio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
+          git add img/w index.html
+          git diff --cached --quiet || git commit -m "Fotos WebP de los pasteles"
+          git push
+
