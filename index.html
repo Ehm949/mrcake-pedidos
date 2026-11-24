@@ -2451,7 +2451,7 @@ function sliceSVG(pid){
 /* Fotos reales: carpeta img/ junto a tienda.html. Si una foto falta, se muestra el dibujo. */
 var IMG='img/';
 /* Fotos ligeras: cuando corres "Fotos WebP" en GitHub (Actions), se crean en img/w/ y esta línea cambia sola a true */
-var FOTOS_WEBP=false;
+var FOTOS_WEBP=true;
 function photoName(pid,slice){var p=prod(pid);if(!p)return null;if(p.cat==='secos')return pid;if(p.base)return p.base+'-rebanada';return pid+(slice?'-rebanada':'')}
 /* Primero la foto real de Bind; si no hay o no carga, la foto de la carpeta img/; si tampoco, el dibujo */
 function photoHTML(pid,slice,fallback,alt){var n=photoName(pid,slice),p=prod(pid);if(!n)return fallback||'';var local=IMG+n+'.jpg',L=[];
